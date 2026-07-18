@@ -1,10 +1,30 @@
 <script setup lang="ts">
-import{computed,ref}from'vue'
-import{useRoute}from'vue-router'
-import{BookOpen,Check,ChevronDown,Clock3,Flame,Play,X}from'lucide-vue-next'
-import{useCourseStore}from'@/stores/courses'
-import{useLearningProgress}from'@/composables/useLearningProgress'
-import LessonPlayer from'@/components/lesson/LessonPlayer.vue'
-const route=useRoute(),store=useCourseStore(),progress=useLearningProgress(),selectedId=ref('');const course=computed(()=>store.findCourse(String(route.params.courseId)));const lessons=computed(()=>course.value?.modules.flatMap(module=>module.lessons)??[]);const nextLesson=computed(()=>lessons.value.find(lesson=>!progress.isCompleted(lesson.id))??lessons.value.at(-1));const selected=computed(()=>lessons.value.find(lesson=>lesson.id===selectedId.value)??nextLesson.value??lessons.value[0]);const completedCount=computed(()=>lessons.value.filter(lesson=>progress.isCompleted(lesson.id)).length);function select(id:string){selectedId.value=id;window.scrollTo({top:0,behavior:'smooth'})}
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { BookOpen, Check, ChevronDown, Clock3, GraduationCap, Play, X } from 'lucide-vue-next'
+import { useCourseStore } from '@/stores/courses'
+import { useLearningProgress } from '@/composables/useLearningProgress'
+import LessonPlayer from '@/components/lesson/LessonPlayer.vue'
+
+const route=useRoute(), store=useCourseStore(), progress=useLearningProgress()
+const ready=ref(false), selectedId=ref('')
+const course=computed(()=>store.findCourse(String(route.params.courseId)))
+const lessons=computed(()=>course.value?.modules.flatMap((module)=>module.lessons)??[])
+const nextLesson=computed(()=>lessons.value.find((lesson)=>!progress.isCompleted(lesson.id))??lessons.value.at(-1))
+const selected=computed(()=>lessons.value.find((lesson)=>lesson.id===selectedId.value)??nextLesson.value??lessons.value[0])
+const completedCount=computed(()=>lessons.value.filter((lesson)=>progress.isCompleted(lesson.id)).length)
+function select(id:string){selectedId.value=id;window.scrollTo({top:0,behavior:'smooth'})}
+onMounted(async()=>{await store.hydrate();ready.value=true})
 </script>
-<template><div v-if="course" class="engine-course-shell"><aside class="engine-course-sidebar"><div class="engine-course-brand"><span><Flame/></span><div><small>33-day intensive</small><strong>English Engine</strong></div></div><section class="engine-course-summary"><span>{{course.tag}}</span><div><b>{{completedCount}} из {{lessons.length}} дней</b><small>Продолжайте с {{nextLesson?.title??'финала'}}</small></div></section><nav><section v-for="module in course.modules" :key="module.id" class="engine-phase"><header><ChevronDown/><div><strong>{{module.title}}</strong><small>{{module.lessons.length}} дней</small></div></header><button v-for="lesson in module.lessons" :key="lesson.id" :class="{active:selected?.id===lesson.id,completed:progress.isCompleted(lesson.id)}" @click="select(lesson.id)"><span><Check v-if="progress.isCompleted(lesson.id)"/><Play v-else/></span><div><b>{{lesson.title}}</b><small><Clock3/>{{lesson.duration}} мин · {{lesson.blocks.filter(block=>block.type==='single_choice').length}} вопросов</small></div></button></section></nav></aside><main class="engine-course-main"><header class="engine-course-topbar"><div><BookOpen/><span><small>Курс</small><b>{{course.title}}</b></span></div><RouterLink :to="`/app/courses/${course.id}`" class="icon-button" aria-label="Закрыть курс"><X/></RouterLink></header><LessonPlayer v-if="selected" :lesson="selected"/></main></div><section v-else class="empty-state"><h2>Курс не найден</h2></section></template>
+<template>
+  <section v-if="!ready" class="engine-loading"><span></span><h2>Загружаем курс…</h2><p>Получаем программу и материалы из Supabase.</p></section>
+  <div v-else-if="course" class="engine-course-shell">
+    <aside class="engine-course-sidebar">
+      <div class="engine-course-brand"><span><GraduationCap /></span><div><small>Учебная программа</small><strong>{{ course.title }}</strong></div></div>
+      <section class="engine-course-summary"><span>{{ course.tag }}</span><div><b>{{ completedCount }} из {{ lessons.length }} уроков</b><small>{{ nextLesson?`Продолжить: ${nextLesson.title}`:'Программа завершена' }}</small></div></section>
+      <nav><section v-for="module in course.modules" :key="module.id" class="engine-phase"><header><ChevronDown /><div><strong>{{ module.title }}</strong><small>{{ module.lessons.length }} уроков</small></div></header><button v-for="lesson in module.lessons" :key="lesson.id" :class="{active:selected?.id===lesson.id,completed:progress.isCompleted(lesson.id)}" @click="select(lesson.id)"><span><Check v-if="progress.isCompleted(lesson.id)" /><Play v-else /></span><div><b>{{ lesson.title }}</b><small><Clock3 />{{ lesson.duration }} мин · {{ lesson.blocks.length }} материалов</small></div></button></section></nav>
+    </aside>
+    <main class="engine-course-main"><header class="engine-course-topbar"><div><BookOpen /><span><small>Курс</small><b>{{ course.title }}</b></span></div><RouterLink :to="`/app/courses/${course.id}`" class="icon-button" aria-label="Закрыть курс"><X /></RouterLink></header><LessonPlayer v-if="selected" :lesson="selected" /><section v-else class="product-empty full"><BookOpen /><h2>В курсе пока нет уроков</h2></section></main>
+  </div>
+  <section v-else class="empty-state"><h2>Курс не найден</h2><p v-if="store.loadError">{{ store.loadError }}</p><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
+</template>

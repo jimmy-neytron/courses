@@ -5,4 +5,5 @@ import { router } from './router'
 import { useAuthStore } from './stores/auth'
 import './assets/styles/main.css'
 import './assets/styles/product-fixes.css'
+import './assets/styles/engine-course.css'
 const app=createApp(App);const pinia=createPinia();app.use(pinia);await useAuthStore(pinia).initialize();app.use(router).mount('#app')

@@ -1,0 +1,1 @@
+﻿<script setup lang="ts">defineProps<{label:string;value:string;hint:string;tone?:string}>()</script><template><article class="stat-card"><div class="stat-top"><span :class="['stat-icon',tone]"><slot/></span><span class="trend">↗ {{hint}}</span></div><strong>{{value}}</strong><p>{{label}}</p></article></template>

@@ -1,0 +1,7 @@
+.product-tabs {
+  scrollbar-width: none;
+}
+
+.product-tabs::-webkit-scrollbar {
+  display: none;
+}

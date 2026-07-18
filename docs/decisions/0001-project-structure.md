@@ -1,0 +1,1 @@
+﻿# 0001. Nuxt-подобная структура`n`nПроект использует Vite + Vue 3 по ТЗ, но организован в знакомом Nuxt-формате: pages, layouts, components, composables, stores, services, types, utils и assets. Роуты объявлены явно, чтобы сохранить Vite и route-level code splitting.

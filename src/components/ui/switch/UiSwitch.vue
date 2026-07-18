@@ -1,0 +1,1 @@
+<script setup lang="ts">import{SwitchRoot,SwitchThumb}from'reka-ui';defineProps<{modelValue:boolean}>();defineEmits<{"update:modelValue":[value:boolean]}>()</script><template><SwitchRoot class="ui-switch" :model-value="modelValue" @update:model-value="$emit('update:modelValue',$event)"><SwitchThumb class="ui-switch__thumb"/></SwitchRoot></template>

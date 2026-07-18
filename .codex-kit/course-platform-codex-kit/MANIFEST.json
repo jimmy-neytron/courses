@@ -1,0 +1,82 @@
+{
+  ".env.example": {
+    "bytes": 125,
+    "sha256": "021dad18cafedd24f0843f50afd31b5058ce5e8ebe3be6069e8f997b504323a0"
+  },
+  "CODEX_SPEC.md": {
+    "bytes": 25277,
+    "sha256": "f9a4d0485789942e36602542987abf03e9a5fc02a242a67f98a9b8840b853501"
+  },
+  "INTEGRATION_PROTOCOL.md": {
+    "bytes": 4918,
+    "sha256": "8f5912fb51f62c3a2e1d0165a1919b97c9154e0817b82b6a0af32b277e24bc48"
+  },
+  "PACKAGE_STACK.md": {
+    "bytes": 1293,
+    "sha256": "2938717a19e27f677fee9a4eb8d2b25fbd17814c68c22bb48dd01599e509b857"
+  },
+  "README.md": {
+    "bytes": 1365,
+    "sha256": "d6c19d7819a02563e8ceb46562d3c4469a3a75a4da1e073b9d72ac92dcc551ed"
+  },
+  "REFERENCES.md": {
+    "bytes": 589,
+    "sha256": "f842206c97906564f64ee06d7b0d30679e9879407e3bb23189594b4da4dab78d"
+  },
+  "START_HERE_FOR_CODEX.md": {
+    "bytes": 2273,
+    "sha256": "22b310c6613dc4f0b4b18958239c77106764ee1d2677af8d8c7398a5ec496289"
+  },
+  "SUPABASE_SCHEMA.md": {
+    "bytes": 3460,
+    "sha256": "8253209eb09af86c1faea8281652614da755847bb6c9543fbfe8c225447cf924"
+  },
+  "SUPABASE_SETUP.md": {
+    "bytes": 3018,
+    "sha256": "2bbb503fd0461d9d11a03e37cc9a706fdb9557b211c99a9d9c441963cc0f49b7"
+  },
+  "VALIDATION_REPORT.json": {
+    "bytes": 868,
+    "sha256": "47f13e0abd099f08a7c94fb7bb80b04c02605ef45b538dcec4cb179165c9d0c1"
+  },
+  "supabase/ALL_IN_ONE.sql": {
+    "bytes": 66417,
+    "sha256": "944785b4dc084aafa148a87c31a6ada7fe3517164902c92cf1645c7f9c8ff78d"
+  },
+  "supabase/sql/00_extensions_and_types.sql": {
+    "bytes": 1579,
+    "sha256": "8d3cb7d2d121d8cd2af1a1141da7305b240dfa3c379f80297999966406edcf62"
+  },
+  "supabase/sql/01_core.sql": {
+    "bytes": 2298,
+    "sha256": "59d9457c7ec5a8a5b8f8a3c05451624d48e37160115844369cf7441d97998996"
+  },
+  "supabase/sql/02_course_content.sql": {
+    "bytes": 6728,
+    "sha256": "c624a761ae8d302c7c567db61a96bdf4a0b53b267aba3893dd9b7344be5d4968"
+  },
+  "supabase/sql/03_learning.sql": {
+    "bytes": 5228,
+    "sha256": "bda76a9f896f85bf3793dede78cbd7a06966aa8ca4f2c43aded0a816bd9f5b20"
+  },
+  "supabase/sql/04_integrations.sql": {
+    "bytes": 6495,
+    "sha256": "07e64b7a12f244fc681c2d1160175f5f5c5766442cf4a490558f28789f3b1e94"
+  },
+  "supabase/sql/05_functions_and_triggers.sql": {
+    "bytes": 21427,
+    "sha256": "7764443331ab8cf5f3a786d911a3888198c556fa1a81a075b1e860b5678387f2"
+  },
+  "supabase/sql/06_rls.sql": {
+    "bytes": 15756,
+    "sha256": "f31f4d6e9548a50e55ebbaabef82dfb8b19a71c7194ba43e52bd0ea93decf500"
+  },
+  "supabase/sql/07_storage.sql": {
+    "bytes": 3570,
+    "sha256": "d8740f39d2eabcb8f0aae4e64e5b6ac645606b0be0599350b28d23ab4ac1c1db"
+  },
+  "supabase/sql/08_views.sql": {
+    "bytes": 1918,
+    "sha256": "8a91e8ef8cfa4b094d8240709ecd4f419f9b314af01fe1a8478d2b1996dacdcf"
+  }
+}

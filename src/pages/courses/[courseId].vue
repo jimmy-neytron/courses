@@ -1,219 +1,73 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { VueDraggable } from 'vue-draggable-plus'
-import { ArrowLeft, BookOpen, Check, ChevronDown, Clock3, Eye, FileText, GripVertical, LayoutList, Plus, Settings2, Sparkles, Save, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, BookOpen } from 'lucide-vue-next'
 import PrimeButton from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
 import DefaultLayout from '@/layouts/default.vue'
 import AppModal from '@/components/AppModal.vue'
+import FormField from '@/components/common/FormField.vue'
+import CourseCurriculum from '@/components/course/CourseCurriculum.vue'
 import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
-import { useCourseStore } from '@/stores/courses'
-import type { CourseModule } from '@/types/course'
+import CourseHero from '@/components/course/CourseHero.vue'
+import CourseOverview from '@/components/course/CourseOverview.vue'
+import CourseSettingsForm from '@/components/course/CourseSettingsForm.vue'
+import CourseTabs from '@/components/course/CourseTabs.vue'
+import { useCourseDetails } from '@/composables/useCourseDetails'
 
-const route=useRoute();const router=useRouter();const store=useCourseStore()
-const course=computed(()=>store.findCourse(String(route.params.courseId)))
-const modules=computed<CourseModule[]>({get:()=>course.value?.modules??[],set:value=>{if(course.value)course.value.modules=value}})
-const tab=ref<'overview'|'curriculum'|'settings'>('curriculum')
-const showModule=ref(false);const showLesson=ref(false);const moduleTitle=ref('');const lessonTitle=ref('');const lessonModule=ref('')
-const orderSaving=ref(false);const saved=ref(false);const actionError=ref('')
-const showDelete=ref(false);const deleting=ref(false);const deleteError=ref('')
-const totalLessons=computed(()=>modules.value.reduce((sum,module)=>sum+module.lessons.length,0))
-const totalMinutes=computed(()=>modules.value.reduce((sum,module)=>sum+module.lessons.reduce((value,lesson)=>value+lesson.duration,0),0))
-const tabs=[{id:'overview',label:'Обзор',icon:LayoutList},{id:'curriculum',label:'Программа',icon:BookOpen},{id:'settings',label:'Настройки',icon:Settings2}] as const
-async function persistOrder(){if(!course.value)return;orderSaving.value=true;actionError.value='';try{await store.persistCourseOrder(course.value.id);saved.value=true;setTimeout(()=>saved.value=false,1400)}catch(error){actionError.value=error instanceof Error?error.message:'Не удалось сохранить порядок'}finally{orderSaving.value=false}}
-async function createModule(){if(!course.value||!moduleTitle.value.trim())return;await store.addModule(course.value.id,moduleTitle.value.trim());moduleTitle.value='';showModule.value=false}
-function openLesson(moduleId:string){lessonModule.value=moduleId;showLesson.value=true}
-async function createLesson(){if(!course.value||!lessonTitle.value.trim())return;const id=await store.addLesson(course.value.id,lessonModule.value,lessonTitle.value.trim());lessonTitle.value='';showLesson.value=false;if(id)await router.push(`/app/lessons/${id}/editor`)}
-async function saveSettings(){if(!course.value)return;await store.saveCourse(course.value.id);saved.value=true;setTimeout(()=>saved.value=false,1400)}
-async function confirmDelete(){if(!course.value)return;deleting.value=true;deleteError.value='';try{await store.deleteCourse(course.value.id);showDelete.value=false;await router.push('/app/courses')}catch(error){deleteError.value=error instanceof Error?error.message:'Не удалось удалить курс'}finally{deleting.value=false}}</script>
+const {
+  course,
+  modules,
+  totalLessons,
+  totalMinutes,
+  tab,
+  moduleDialogOpen,
+  lessonDialogOpen,
+  deleteDialogOpen,
+  moduleTitle,
+  lessonTitle,
+  orderSaving,
+  deleting,
+  saved,
+  actionError,
+  deleteError,
+  persistOrder,
+  createModule,
+  openLessonDialog,
+  createLesson,
+  saveSettings,
+  publishCourse,
+  deleteCourse,
+} = useCourseDetails()
+</script>
 
 <template>
-<DefaultLayout>
-<template v-if="course">
-<div class="product-course">
-<div class="product-breadcrumb">
-<RouterLink to="/app/courses">
-<ArrowLeft/>Курсы</RouterLink>
-<span>/</span>
-<span>{{course.title}}</span>
-</div>
-<section class="product-course-hero">
-<div class="product-course-cover" :style="{background:course.cover}">
-<span>{{course.tag}}</span>
-<i>
-</i>
-</div>
-<div class="product-course-copy">
-<div class="product-kicker">
-<span :class="['product-status',course.status==='Черновик'&&'is-draft']">{{course.status}}</span>
-<span>Обновлено {{course.updated}}</span>
-</div>
-<h1>{{course.title}}</h1>
-<p>{{course.description}}</p>
-<div class="product-course-meta">
-<span>
-<BookOpen/>{{modules.length}} модулей</span>
-<span>
-<FileText/>{{totalLessons}} уроков</span>
-<span>
-<Clock3/>{{Math.round(totalMinutes/60)}} ч программы</span>
-</div>
-</div>
-<div class="product-course-actions">
-<RouterLink :to="`/preview/courses/${course.id}`" class="product-button product-button--secondary">
-<Eye/>Предпросмотр</RouterLink>
-<PrimeButton :disabled="course.status==='Опубликован'" @click="store.publishCourse(course.id)">
-<Sparkles/>{{course.status==='Опубликован'?'Опубликовано':'Опубликовать'}}</PrimeButton>
-<PrimeButton severity="danger" outlined @click="showDelete=true">
-<Trash2/>Удалить курс</PrimeButton>
-</div>
-</section>
-<div v-if="actionError" class="product-alert is-error">{{actionError}}</div>
-<nav class="product-tabs">
-<button v-for="item in tabs" :key="item.id" :class="{active:tab===item.id}" @click="tab=item.id">
-<component :is="item.icon"/>{{item.label}}</button>
-</nav>
-<section v-if="tab==='curriculum'" class="product-section">
-<div class="product-section-head">
-<div>
-<span class="eyebrow">Course builder</span>
-<h2>Структура курса</h2>
-<p>Перетаскивайте модули и уроки за маркер слева. Порядок сохраняется автоматически.</p>
-</div>
-<div class="product-save-state">
-<span v-if="orderSaving">Сохраняем…</span>
-<span v-else-if="saved" class="is-success">
-<Check/>Сохранено</span>
-<PrimeButton severity="secondary" outlined @click="showModule=true">
-<Plus/>Новый модуль</PrimeButton>
-</div>
-</div>
-<VueDraggable v-model="modules" item-key="id" handle=".module-drag-handle" :animation="180" ghost-class="drag-ghost" :force-fallback="true" fallback-class="drag-fallback" chosen-class="drag-chosen" class="product-modules" @end="persistOrder">
-<article v-for="(module,moduleIndex) in modules" :key="module.id" class="product-module">
-<header>
-<button class="drag-handle module-drag-handle" aria-label="Переместить модуль">
-<GripVertical/>
-</button>
-<span class="product-module-index">{{String(moduleIndex+1).padStart(2,'0')}}</span>
-<button class="product-module-title" @click="module.open=!module.open">
-<span>
-<strong>{{module.title}}</strong>
-<small>{{module.lessons.length}} уроков · {{module.lessons.reduce((sum,lesson)=>sum+lesson.duration,0)}} минут</small>
-</span>
-<ChevronDown :class="{rotated:!module.open}"/>
-</button>
-</header>
-<div v-show="module.open" class="product-lessons">
-<VueDraggable v-model="module.lessons" item-key="id" handle=".lesson-drag-handle" :group="{name:'course-lessons'}" :animation="180" ghost-class="drag-ghost" :force-fallback="true" fallback-class="drag-fallback" class="product-lessons-list" @end="persistOrder">
-<RouterLink v-for="(lesson,lessonIndex) in module.lessons" :key="lesson.id" :to="`/app/lessons/${lesson.id}/editor`" class="product-lesson">
-<span class="drag-handle lesson-drag-handle" aria-label="Переместить урок" @click.prevent>
-<GripVertical/>
-</span>
-<span class="product-lesson-index">{{moduleIndex+1}}.{{lessonIndex+1}}</span>
-<div>
-<strong>{{lesson.title}}</strong>
-<small>
-<Clock3/>{{lesson.duration}} мин<span>·</span>{{lesson.blocks.length}} блоков</small>
-</div>
-<span :class="['product-status',lesson.status==='Черновик'&&'is-draft']">{{lesson.status}}</span>
-</RouterLink>
-</VueDraggable>
-<button class="product-add-row" @click="openLesson(module.id)">
-<Plus/>Добавить урок в модуль</button>
-</div>
-</article>
-</VueDraggable>
-<button v-if="modules.length" class="product-add-module" @click="showModule=true">
-<Plus/>
-<span>
-<strong>Добавить следующий модуль</strong>
-<small>Создайте новый этап программы</small>
-</span>
-</button>
-<div v-else class="product-empty">
-<BookOpen/>
-<h3>Начните с первого модуля</h3>
-<p>Соберите программу из логичных этапов и добавьте уроки.</p>
-<PrimeButton @click="showModule=true">
-<Plus/>Создать модуль</PrimeButton>
-</div>
-</section>
-<section v-else-if="tab==='overview'" class="product-section product-overview">
-<article>
-<span>О курсе</span>
-<h2>{{course.title}}</h2>
-<p>{{course.description}}</p>
-</article>
-<article>
-<span>Структура</span>
-<dl>
-<div>
-<dt>Модулей</dt>
-<dd>{{modules.length}}</dd>
-</div>
-<div>
-<dt>Уроков</dt>
-<dd>{{totalLessons}}</dd>
-</div>
-<div>
-<dt>Длительность</dt>
-<dd>{{Math.round(totalMinutes/60)}} часов</dd>
-</div>
-<div>
-<dt>Статус</dt>
-<dd>{{course.status}}</dd>
-</div>
-</dl>
-</article>
-</section>
-<section v-else class="product-section product-settings">
-<div>
-<span class="eyebrow">Course settings</span>
-<h2>Основная информация</h2>
-<p>Изменения сохраняются в Supabase.</p>
-</div>
-<form @submit.prevent="saveSettings">
-<label>Название<InputText v-model="course.title" fluid/>
-</label>
-<label>Описание<Textarea v-model="course.description" rows="5" auto-resize fluid/>
-</label>
-<div>
-<PrimeButton type="submit">
-<Save/>Сохранить изменения</PrimeButton>
-<span v-if="saved" class="is-success">
-<Check/>Сохранено</span>
-</div>
-</form>
-</section>
-</div>
-<AppModal v-if="showModule" title="Новый модуль" @close="showModule=false">
-<form class="form" @submit.prevent="createModule">
-<label>Название модуля<InputText v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency" fluid/>
-</label>
-<div class="form-actions">
-<PrimeButton severity="secondary" outlined @click="showModule=false">Отмена</PrimeButton>
-<PrimeButton type="submit">Добавить модуль</PrimeButton>
-</div>
-</form>
-</AppModal>
-<AppModal v-if="showLesson" title="Новый урок" @close="showLesson=false">
-<form class="form" @submit.prevent="createLesson">
-<label>Название урока<InputText v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid/>
-</label>
-<div class="form-actions">
-<PrimeButton severity="secondary" outlined @click="showLesson=false">Отмена</PrimeButton>
-<PrimeButton type="submit">Создать и открыть</PrimeButton>
-</div>
-</form>
-</AppModal>
-<CourseDeleteDialog v-if="showDelete&&course" :course="course" :pending="deleting" :error="deleteError" @close="showDelete=false" @confirm="confirmDelete"/>
-</template>
-<section v-else class="product-empty full">
-<BookOpen/>
-<h2>Курс не найден</h2>
-<RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink>
-</section>
-</DefaultLayout>
+  <DefaultLayout>
+    <template v-if="course">
+      <div class="product-course">
+        <div class="product-breadcrumb"><RouterLink to="/app/courses"><ArrowLeft />Курсы</RouterLink><span>/</span><span>{{ course.title }}</span></div>
+        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @publish="publishCourse" @delete="deleteDialogOpen = true" />
+        <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
+        <CourseTabs v-model="tab" />
+        <CourseCurriculum v-if="tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" />
+        <CourseOverview v-else-if="tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
+        <CourseSettingsForm v-else :course="course" :saved="saved" @save="saveSettings" />
+      </div>
+
+      <AppModal v-if="moduleDialogOpen" title="Новый модуль" @close="moduleDialogOpen = false">
+        <form class="form" @submit.prevent="createModule">
+          <FormField label="Название модуля"><InputText v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency" fluid /></FormField>
+          <div class="form-actions"><PrimeButton type="button" severity="secondary" outlined @click="moduleDialogOpen = false">Отмена</PrimeButton><PrimeButton type="submit">Добавить модуль</PrimeButton></div>
+        </form>
+      </AppModal>
+
+      <AppModal v-if="lessonDialogOpen" title="Новый урок" @close="lessonDialogOpen = false">
+        <form class="form" @submit.prevent="createLesson">
+          <FormField label="Название урока"><InputText v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid /></FormField>
+          <div class="form-actions"><PrimeButton type="button" severity="secondary" outlined @click="lessonDialogOpen = false">Отмена</PrimeButton><PrimeButton type="submit">Создать и открыть</PrimeButton></div>
+        </form>
+      </AppModal>
+
+      <CourseDeleteDialog v-if="deleteDialogOpen" :course="course" :pending="deleting" :error="deleteError" @close="deleteDialogOpen = false" @confirm="deleteCourse" />
+    </template>
+    <section v-else class="product-empty full"><BookOpen /><h2>Курс не найден</h2><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
+  </DefaultLayout>
 </template>

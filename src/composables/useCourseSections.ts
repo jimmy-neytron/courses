@@ -1,4 +1,4 @@
-import type { LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
+import type { BlockType, LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
 
 export const defaultLessonSections: ReadonlyArray<LessonSectionConfig> = [
   { id: 'theory', label: 'Теория', visible: true, order: 0 },
@@ -11,7 +11,7 @@ export const defaultLessonSections: ReadonlyArray<LessonSectionConfig> = [
   { id: 'test', label: 'Тест', visible: true, order: 7 },
 ]
 
-export const sectionBlockTypes: Record<LessonSectionId, string[]> = {
+export const sectionBlockTypes: Record<LessonSectionId, BlockType[]> = {
   theory: ['heading', 'grammar', 'callout', 'text', 'vocabulary', 'pdf'],
   conversation: ['conversation'],
   listening: ['audio'],
@@ -23,13 +23,19 @@ export const sectionBlockTypes: Record<LessonSectionId, string[]> = {
 }
 
 export function createLessonSectionConfig(source?: LessonSectionConfig[]): LessonSectionConfig[] {
-  const saved = new Map((source ?? []).map((section) => [section.id, section]))
+  const savedSections = new Map((source ?? []).map((section) => [section.id, section]))
   return defaultLessonSections
-    .map((fallback) => ({ ...fallback, ...saved.get(fallback.id) }))
+    .map((fallback) => ({ ...fallback, ...savedSections.get(fallback.id) }))
     .sort((left, right) => left.order - right.order)
     .map((section, order) => ({ ...section, order }))
 }
+
 export function resolveLessonBlockSection(block: Pick<LessonBlock, 'type' | 'sectionId'>): LessonSectionId {
-  if (block.sectionId && defaultLessonSections.some((section) => section.id === block.sectionId)) return block.sectionId
-  return defaultLessonSections.find((section) => sectionBlockTypes[section.id].includes(block.type))?.id ?? 'theory'
+  if (block.sectionId && defaultLessonSections.some((section) => section.id === block.sectionId)) {
+    return block.sectionId
+  }
+
+  return defaultLessonSections.find((section) => (
+    sectionBlockTypes[section.id].includes(block.type)
+  ))?.id ?? 'theory'
 }

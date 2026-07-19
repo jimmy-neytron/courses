@@ -1,2 +1,0 @@
-import { requireSupabase } from './supabase'
-export const authService={signUp:(email:string,password:string)=>requireSupabase().auth.signUp({email,password}),signIn:(email:string,password:string)=>requireSupabase().auth.signInWithPassword({email,password}),signOut:()=>requireSupabase().auth.signOut(),session:()=>requireSupabase().auth.getSession()}

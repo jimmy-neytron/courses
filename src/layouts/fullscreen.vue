@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import PageLoader from '@/components/loading/PageLoader.vue'
-import { useCourseStore } from '@/stores/courses'
+import AppDataBoundary from '@/components/common/AppDataBoundary.vue'
 
-const route=useRoute()
-const store=useCourseStore()
-const ready=ref(false)
-const label=computed(()=>String(route.meta.loadingLabel??'Открываем страницу'))
-
-onMounted(async()=>{await store.hydrate();ready.value=true})
+const route = useRoute()
+const loadingLabel = computed(() => String(route.meta.loadingLabel ?? 'Открываем страницу'))
 </script>
 
 <template>
-  <PageLoader v-if="!ready" :label="label" fullscreen />
-  <slot v-else />
+  <AppDataBoundary :label="loadingLabel" fullscreen><slot /></AppDataBoundary>
 </template>

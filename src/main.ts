@@ -1,11 +1,16 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import App from './App.vue'
-import { router } from './router'
-import { useAuthStore } from './stores/auth'
-import { installPrimeVue } from './plugins/primevue'
-import './assets/styles/main.css'
-import './assets/styles/product-fixes.css'
-import './assets/styles/engine-course.css'
-import './assets/styles/theme.css'
-const app=createApp(App);const pinia=createPinia();app.use(pinia);installPrimeVue(app);await useAuthStore(pinia).initialize();app.use(router).mount('#app')
+import App from '@/App.vue'
+import { router } from '@/router'
+import { installPrimeVue } from '@/plugins/primevue'
+import { useAuthStore } from '@/stores/auth'
+import '@/assets/styles/index.css'
+
+const app = createApp(App)
+const pinia = createPinia()
+
+app.use(pinia)
+installPrimeVue(app)
+await useAuthStore(pinia).initialize()
+app.use(router)
+app.mount('#app')

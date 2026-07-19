@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCourseStore } from '@/stores/courses'
 import { useTransientFlag } from '@/composables/useTransientFlag'
+import { useCourseAccess } from '@/composables/useCourseAccess'
 import type { CourseModule } from '@/types/course'
 
 export type CourseDetailsTab = 'overview' | 'curriculum' | 'settings'
@@ -11,6 +12,7 @@ export function useCourseDetails() {
   const router = useRouter()
   const store = useCourseStore()
   const course = computed(() => store.findCourse(String(route.params.courseId)))
+  const { isCreator, isLearner, canManage } = useCourseAccess(course)
   const modules = computed<CourseModule[]>({
     get: () => course.value?.modules ?? [],
     set: (value) => { if (course.value) course.value.modules = value },
@@ -25,6 +27,9 @@ export function useCourseDetails() {
   const moduleDialogOpen = ref(false)
   const lessonDialogOpen = ref(false)
   const deleteDialogOpen = ref(false)
+  const inviteDialogOpen = ref(false)
+  const inviteRefreshing = ref(false)
+  const inviteError = ref('')
   const moduleTitle = ref('')
   const lessonTitle = ref('')
   const lessonModuleId = ref('')
@@ -44,7 +49,7 @@ export function useCourseDetails() {
   }
 
   async function persistOrder() {
-    if (!course.value) return
+    if (!course.value || !canManage.value) return
     orderSaving.value = true
     await run(async () => {
       await store.persistCourseOrder(course.value!.id)
@@ -55,7 +60,7 @@ export function useCourseDetails() {
 
   async function createModule() {
     const title = moduleTitle.value.trim()
-    if (!course.value || !title) return
+    if (!course.value || !canManage.value || !title) return
     await run(async () => {
       await store.addModule(course.value!.id, title)
       moduleTitle.value = ''
@@ -64,13 +69,14 @@ export function useCourseDetails() {
   }
 
   function openLessonDialog(moduleId: string) {
+    if (!canManage.value) return
     lessonModuleId.value = moduleId
     lessonDialogOpen.value = true
   }
 
   async function createLesson() {
     const title = lessonTitle.value.trim()
-    if (!course.value || !title) return
+    if (!course.value || !canManage.value || !title) return
     await run(async () => {
       const id = await store.addLesson(course.value!.id, lessonModuleId.value, title)
       lessonTitle.value = ''
@@ -80,7 +86,7 @@ export function useCourseDetails() {
   }
 
   async function saveSettings() {
-    if (!course.value) return
+    if (!course.value || !canManage.value) return
     await run(async () => {
       await store.saveCourse(course.value!.id)
       showSaved()
@@ -88,7 +94,7 @@ export function useCourseDetails() {
   }
 
   async function publishCourse() {
-    if (!course.value) return
+    if (!course.value || !canManage.value) return
     await run(async () => {
       await store.publishCourse(course.value!.id)
       showSaved()
@@ -96,7 +102,7 @@ export function useCourseDetails() {
   }
 
   async function deleteCourse() {
-    if (!course.value) return
+    if (!course.value || !canManage.value) return
     deleting.value = true
     deleteError.value = ''
     try {
@@ -110,9 +116,25 @@ export function useCourseDetails() {
     }
   }
 
+  async function refreshInviteCode() {
+    if (!course.value || !canManage.value) return
+    inviteRefreshing.value = true
+    inviteError.value = ''
+    try {
+      await store.refreshJoinCode(course.value.id)
+    } catch (error) {
+      inviteError.value = error instanceof Error ? error.message : 'Не удалось обновить код приглашения'
+    } finally {
+      inviteRefreshing.value = false
+    }
+  }
+
   return {
     store,
     course,
+    isCreator,
+    isLearner,
+    canManage,
     modules,
     totalLessons,
     totalMinutes,
@@ -120,6 +142,9 @@ export function useCourseDetails() {
     moduleDialogOpen,
     lessonDialogOpen,
     deleteDialogOpen,
+    inviteDialogOpen,
+    inviteRefreshing,
+    inviteError,
     moduleTitle,
     lessonTitle,
     orderSaving,
@@ -134,5 +159,6 @@ export function useCourseDetails() {
     saveSettings,
     publishCourse,
     deleteCourse,
+    refreshInviteCode,
   }
 }

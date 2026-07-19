@@ -1,0 +1,103 @@
+/* Shared page and form primitives. Keep these after legacy feature styles. */
+.page-heading {
+  position: static;
+  width: auto;
+  min-height: 0;
+  height: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.page-heading > div:first-child {
+  min-width: 0;
+}
+
+.page-heading h1 {
+  margin: 7px 0 8px;
+  color: var(--text);
+  font-size: var(--font-page);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.page-heading p {
+  max-width: 700px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-body);
+  line-height: 1.65;
+}
+
+.page-heading__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+  color: #b9c7bf;
+  font-size: var(--font-small);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.form-field > span {
+  color: #c9d5ce;
+}
+
+.form-field > small {
+  color: var(--muted);
+  font-size: var(--font-caption);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.save-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.save-state svg {
+  width: 15px;
+  height: 15px;
+}
+
+.save-state--saving svg {
+  animation: save-state-spin .8s linear infinite;
+}
+
+.save-state--saved {
+  color: #6ee8a5;
+}
+
+@keyframes save-state-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+  .page-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .page-heading__actions > * {
+    flex: 1;
+  }
+}

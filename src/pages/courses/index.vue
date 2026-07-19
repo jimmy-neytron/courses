@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, Search } from 'lucide-vue-next'
+import { LogIn, Plus, Search } from 'lucide-vue-next'
 import PrimeButton from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import SelectButton from 'primevue/selectbutton'
@@ -8,18 +8,25 @@ import PageHeading from '@/components/common/PageHeading.vue'
 import CourseCard from '@/components/CourseCard.vue'
 import CourseCreateDialog from '@/components/course/CourseCreateDialog.vue'
 import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
+import CourseJoinDialog from '@/components/course/CourseJoinDialog.vue'
 import { useCoursesPage } from '@/composables/useCoursesPage'
 
 const {
   query,
   status,
+  access,
   statusOptions,
+  accessOptions,
   createDialogOpen,
+  joinDialogOpen,
+  joining,
+  joinError,
   selectedForDelete,
   deleting,
   deleteError,
   filteredCourses,
   createCourse,
+  joinCourse,
   openDeleteDialog,
   confirmDelete,
 } = useCoursesPage()
@@ -27,14 +34,16 @@ const {
 
 <template>
   <DefaultLayout>
-    <PageHeading title="Курсы" description="Создавайте, публикуйте и обновляйте учебные программы.">
+    <PageHeading title="Курсы" description="Управляйте своими программами и продолжайте обучение на курсах других авторов.">
       <template #actions>
+        <PrimeButton severity="secondary" outlined @click="joinDialogOpen = true"><LogIn />Ввести код курса</PrimeButton>
         <PrimeButton @click="createDialogOpen = true"><Plus />Создать курс</PrimeButton>
       </template>
     </PageHeading>
 
-    <div class="toolbar">
+    <div class="toolbar course-filter-toolbar">
       <label><Search /><InputText v-model="query" placeholder="Найти курс" /></label>
+      <SelectButton v-model="access" :options="accessOptions" :allow-empty="false" />
       <SelectButton v-model="status" :options="statusOptions" :allow-empty="false" />
     </div>
 
@@ -48,6 +57,7 @@ const {
     </section>
 
     <CourseCreateDialog v-if="createDialogOpen" @close="createDialogOpen = false" @create="createCourse" />
+    <CourseJoinDialog v-if="joinDialogOpen" :pending="joining" :error="joinError" @close="joinDialogOpen = false" @join="joinCourse" />
     <CourseDeleteDialog
       v-if="selectedForDelete"
       :course="selectedForDelete"

@@ -1,0 +1,150 @@
+:root {
+  --font-sans: 'Onest', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --line-height-control: 1.4;
+  --line-height-body: 1.55;
+  --font-size-control: 13px;
+  --icon-size-button: 14px;
+  font-family: var(--font-sans);
+}
+
+html,
+body,
+#app,
+button,
+input,
+textarea,
+select,
+option,
+optgroup {
+  font-family: var(--font-sans);
+}
+
+body {
+  font-size: var(--font-body, 14px);
+  font-weight: 400;
+  line-height: var(--line-height-body);
+  font-feature-settings: 'ss01' 1, 'cv01' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  line-height: var(--line-height-control) !important;
+  letter-spacing: -0.01em;
+}
+
+button {
+  font-weight: 600;
+}
+
+select,
+option,
+optgroup {
+  font-size: var(--font-size-control);
+  font-weight: 400;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+
+/* PrimeVue overlays are teleported to body, so every public control is covered explicitly. */
+.p-component,
+.p-inputtext,
+.p-textarea,
+.p-password,
+.p-password-input,
+.p-select,
+.p-select-label,
+.p-select-overlay,
+.p-select-option,
+.p-button,
+.p-button-label,
+.p-menu,
+.p-menu-item-label,
+.p-contextmenu,
+.p-dialog,
+.p-drawer,
+.p-popover,
+.p-tooltip,
+.p-message,
+.p-fileupload {
+  font-family: var(--font-sans);
+}
+
+.p-inputtext,
+.p-textarea,
+.p-password-input,
+.p-select-label,
+.p-select-option,
+.p-button,
+.p-button-label,
+.p-menu-item-label,
+.p-contextmenu-item-label {
+  line-height: var(--line-height-control) !important;
+}
+
+.p-inputtext,
+.p-textarea,
+.p-password-input {
+  font-weight: 500;
+}
+
+.p-select {
+  align-items: stretch;
+  font-size: var(--font-size-control);
+  font-weight: 400;
+}
+
+.p-select-label {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  padding-block: 0 !important;
+  font-size: inherit !important;
+  font-weight: 400;
+}
+
+.p-select-option {
+  font-size: var(--font-size-control);
+  font-weight: 400;
+}
+
+.p-select-dropdown svg {
+  width: var(--icon-size-button);
+  height: var(--icon-size-button);
+}
+
+.p-select-dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+}
+
+.p-button,
+.p-button-label,
+.p-menu-item-label,
+.p-contextmenu-item-label {
+  font-weight: 600;
+}
+
+.p-button svg,
+.p-button .p-button-icon {
+  width: var(--icon-size-button) !important;
+  height: var(--icon-size-button) !important;
+  font-size: var(--icon-size-button) !important;
+  flex: none;
+}
+
+/* Overrides the old compact shorthand without changing the block geometry. */
+.product-module-index {
+  font-family: var(--font-sans);
+  line-height: var(--line-height-control);
+}

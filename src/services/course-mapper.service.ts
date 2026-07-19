@@ -125,7 +125,7 @@ function mapLesson(row: DatabaseRow): Lesson {
   }
 }
 
-export function mapDatabaseCourse(row: DatabaseRow): Course {
+export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course {
   const modules = asRows(row.course_modules).sort(byPosition).map((module) => ({
     id: String(module.id),
     title: String(module.title),
@@ -133,8 +133,20 @@ export function mapDatabaseCourse(row: DatabaseRow): Course {
     lessons: asRows(module.lessons).sort(byPosition).map(mapLesson),
   }))
 
+  const ownerId = String(row.owner_id ?? '')
+  const owner = asRecord(row.owner)
+  const invite = asRows(row.course_invites)[0]
+
   return {
     id: String(row.id),
+    ownerId,
+    accessRole: !currentUserId || ownerId === currentUserId ? 'creator' : 'learner',
+    creator: {
+      id: ownerId,
+      name: String(owner.display_name ?? (ownerId === currentUserId ? 'Вы' : 'Автор курса')),
+      avatarUrl: String(owner.avatar_url ?? '') || undefined,
+    },
+    joinCode: invite ? String(invite.code ?? '') || undefined : undefined,
     title: String(row.title),
     description: String(row.description ?? ''),
     cover: `linear-gradient(135deg,${String(row.accent_color ?? '#3AC3A6')},#142d39)`,

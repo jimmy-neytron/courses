@@ -3,12 +3,22 @@ import type { Course } from '@/types/course'
 const SUPABASE_CACHE_PREFIX = 'course-platform-cache-v1-'
 const DEMO_CACHE_KEY = 'cursor-courses-v3'
 
+function normalizeCachedCourse(course: Course): Course {
+  const ownerId = course.ownerId || 'legacy-owner'
+  return {
+    ...course,
+    ownerId,
+    accessRole: course.accessRole || 'creator',
+    creator: course.creator || { id: ownerId, name: 'Вы' },
+  }
+}
+
 function parseCourses(value: string | null): Course[] {
   if (!value) return []
 
   try {
     const parsed = JSON.parse(value) as unknown
-    return Array.isArray(parsed) ? parsed as Course[] : []
+    return Array.isArray(parsed) ? (parsed as Course[]).map(normalizeCachedCourse) : []
   } catch {
     return []
   }

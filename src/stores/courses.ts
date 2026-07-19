@@ -9,6 +9,7 @@ import { createLessonAudioUrl, uploadLessonAudio } from '@/services/lesson-audio
 import { createLessonPdfUrl, uploadLessonPdf } from '@/services/lesson-pdf.service'
 import { deleteLessonAssets, releaseLessonObjectUrls } from '@/services/lesson-assets.service'
 import { mapDatabaseCourse } from '@/services/course-mapper.service'
+import { joinCourseByCode, regenerateCourseInvite } from '@/services/course-access.service'
 import {
   clearDemoCourses,
   readCourseCache,
@@ -98,15 +99,26 @@ export const useCourseStore = defineStore('courses', () => {
           localStorage.setItem(seedKey, 'true')
         }
 
-        const { data, error } = await requireSupabase()
+        const database = requireSupabase()
+        let { data, error } = await database
           .from('courses')
-          .select('id,title,description,status,target_level,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))')
-          .eq('organization_id', organizationId)
+          .select('id,owner_id,title,description,status,target_level,accent_color,updated_at,owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url),course_memberships(user_id,role),course_invites(code),course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))')
           .order('updated_at', { ascending: false })
+
+        if (error && ['42P01', 'PGRST200', 'PGRST205'].includes(error.code ?? '')) {
+          const fallback = await database
+            .from('courses')
+            .select('id,owner_id,title,description,status,target_level,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))')
+            .eq('organization_id', organizationId)
+            .order('updated_at', { ascending: false })
+          data = fallback.data as unknown as typeof data
+          error = fallback.error
+        }
 
         if (error) throw error
 
-        courses.value = ((data ?? []) as unknown as Record<string, unknown>[]).map(mapDatabaseCourse)
+        courses.value = ((data ?? []) as unknown as Record<string, unknown>[])
+          .map((row) => mapDatabaseCourse(row, userId))
         await resolveAssetUrls()
         hydratedOrganizationId = organizationId
         hydrated.value = true
@@ -173,6 +185,10 @@ export const useCourseStore = defineStore('courses', () => {
       const id = `course-${Date.now()}`
       courses.value.unshift({
         id,
+        ownerId: 'demo-user',
+        accessRole: 'creator',
+        creator: { id: 'demo-user', name: 'Вы' },
+        joinCode: `DEMO${String(Date.now()).slice(-6)}`,
         title,
         description,
         cover: 'linear-gradient(135deg,#176452,#3ac3a6)',
@@ -201,6 +217,25 @@ export const useCourseStore = defineStore('courses', () => {
     if (error) throw error
     await hydrate(true)
     return String(data.id)
+  }
+
+  async function joinCourse(code: string): Promise<string> {
+    if (!isSupabaseConfigured) throw new Error('Подключите Supabase, чтобы присоединяться к курсам')
+    const courseId = await joinCourseByCode(code)
+    await hydrate(true)
+    return courseId
+  }
+
+  async function refreshJoinCode(courseId: string): Promise<string> {
+    const course = findCourse(courseId)
+    if (!course || course.accessRole !== 'creator') throw new Error('Только автор может менять код приглашения')
+    if (!isSupabaseConfigured) {
+      course.joinCode = `DEMO${String(Date.now()).slice(-6)}`
+      return course.joinCode
+    }
+
+    course.joinCode = await regenerateCourseInvite(courseId)
+    return course.joinCode
   }
 
   async function addModule(courseId: string, title = 'Новый модуль'): Promise<void> {
@@ -469,6 +504,8 @@ export const useCourseStore = defineStore('courses', () => {
     findLesson,
     hydrate,
     createCourse,
+    joinCourse,
+    refreshJoinCode,
     addModule,
     addLesson,
     addBlock,

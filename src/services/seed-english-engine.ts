@@ -72,6 +72,10 @@ function dayBlocks(dayIndex: number): LessonBlock[] {
 export function buildEnglishEngineDemoCourse(): Course {
   return {
     id: 'english-engine-33',
+    ownerId: 'demo-user',
+    accessRole: 'creator',
+    creator: { id: 'demo-user', name: 'Вы' },
+    joinCode: 'ENGLISH33',
     title: 'English Engine · с нуля до B2 за 33 дня',
     description: 'Интенсив по шести языковым механизмам: 33 ежедневных урока, разговор, listening, 20 карточек в день, клиника ошибок, перевод и 10 экзаменов.',
     cover: 'linear-gradient(135deg,#142d39,#3ac3a6)',

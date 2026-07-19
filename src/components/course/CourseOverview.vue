@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Course } from '@/types/course'
+import CourseRoleBadge from '@/components/course/CourseRoleBadge.vue'
 
 defineProps<{ course: Course; moduleCount: number; lessonCount: number; totalMinutes: number }>()
 </script>
@@ -14,6 +15,8 @@ defineProps<{ course: Course; moduleCount: number; lessonCount: number; totalMin
         <div><dt>Уроков</dt><dd>{{ lessonCount }}</dd></div>
         <div><dt>Длительность</dt><dd>{{ Math.round(totalMinutes / 60) }} часов</dd></div>
         <div><dt>Статус</dt><dd>{{ course.status }}</dd></div>
+        <div><dt>Ваша роль</dt><dd><CourseRoleBadge :role="course.accessRole" :creator-name="course.creator.name" /></dd></div>
+        <div><dt>Автор</dt><dd>{{ course.creator.name }}</dd></div>
       </dl>
     </article>
   </section>

@@ -1,5 +1,13 @@
 export type CourseStatus = 'Опубликован' | 'Черновик'
 
+export type CourseAccessRole = 'creator' | 'learner'
+
+export interface CourseCreator {
+  id: string
+  name: string
+  avatarUrl?: string
+}
+
 export type BlockType =
   | 'heading'
   | 'text'
@@ -91,6 +99,10 @@ export interface CourseModule {
 
 export interface Course {
   id: string
+  ownerId: string
+  accessRole: CourseAccessRole
+  creator: CourseCreator
+  joinCode?: string
   title: string
   description: string
   cover: string

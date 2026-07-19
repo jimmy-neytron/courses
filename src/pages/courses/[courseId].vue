@@ -8,6 +8,7 @@ import FormField from '@/components/common/FormField.vue'
 import CourseCurriculum from '@/components/course/CourseCurriculum.vue'
 import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
 import CourseHero from '@/components/course/CourseHero.vue'
+import CourseInviteDialog from '@/components/course/CourseInviteDialog.vue'
 import CourseOverview from '@/components/course/CourseOverview.vue'
 import CourseSettingsForm from '@/components/course/CourseSettingsForm.vue'
 import CourseTabs from '@/components/course/CourseTabs.vue'
@@ -15,6 +16,7 @@ import { useCourseDetails } from '@/composables/useCourseDetails'
 
 const {
   course,
+  canManage,
   modules,
   totalLessons,
   totalMinutes,
@@ -22,6 +24,9 @@ const {
   moduleDialogOpen,
   lessonDialogOpen,
   deleteDialogOpen,
+  inviteDialogOpen,
+  inviteRefreshing,
+  inviteError,
   moduleTitle,
   lessonTitle,
   orderSaving,
@@ -36,6 +41,7 @@ const {
   saveSettings,
   publishCourse,
   deleteCourse,
+  refreshInviteCode,
 } = useCourseDetails()
 </script>
 
@@ -44,12 +50,12 @@ const {
     <template v-if="course">
       <div class="product-course">
         <div class="product-breadcrumb"><RouterLink to="/app/courses"><ArrowLeft />Курсы</RouterLink><span>/</span><span>{{ course.title }}</span></div>
-        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @publish="publishCourse" @delete="deleteDialogOpen = true" />
+        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @publish="publishCourse" @delete="deleteDialogOpen = true" @invite="inviteDialogOpen = true" />
         <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
-        <CourseTabs v-model="tab" />
-        <CourseCurriculum v-if="tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" />
-        <CourseOverview v-else-if="tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
-        <CourseSettingsForm v-else :course="course" :saved="saved" @save="saveSettings" />
+        <CourseTabs v-if="canManage" v-model="tab" />
+        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" />
+        <CourseOverview v-else-if="!canManage || tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
+        <CourseSettingsForm v-else-if="canManage" :course="course" :saved="saved" @save="saveSettings" />
       </div>
 
       <AppModal v-if="moduleDialogOpen" title="Новый модуль" @close="moduleDialogOpen = false">
@@ -67,6 +73,7 @@ const {
       </AppModal>
 
       <CourseDeleteDialog v-if="deleteDialogOpen" :course="course" :pending="deleting" :error="deleteError" @close="deleteDialogOpen = false" @confirm="deleteCourse" />
+      <CourseInviteDialog v-if="inviteDialogOpen" :course="course" :refreshing="inviteRefreshing" :error="inviteError" @close="inviteDialogOpen = false" @regenerate="refreshInviteCode" />
     </template>
     <section v-else class="product-empty full"><BookOpen /><h2>Курс не найден</h2><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
   </DefaultLayout>

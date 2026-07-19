@@ -1,0 +1,65 @@
+/* Student lesson view. */
+.engine-player {
+  max-width: 1160px;
+}
+
+.engine-lesson-header > div > p:last-child,
+.engine-section-title > span,
+.engine-section-title small {
+  font-size: 12px;
+}
+
+.engine-section-nav button {
+  min-height: 48px;
+  padding-inline: 13px;
+  font-size: 11px;
+}
+
+.engine-section-title h2 {
+  font-size: 21px;
+}
+
+.engine-theory-block,
+.engine-card,
+.engine-test-question {
+  border-radius: 16px;
+}
+
+.engine-theory-block h3,
+.engine-card h3 {
+  font-size: 19px;
+}
+
+.engine-theory-block p,
+.engine-card p,
+.engine-test-question h3 {
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.engine-section-complete {
+  min-height: 46px;
+  padding-inline: 16px;
+  font-size: 12px;
+}
+
+.engine-lesson-footer a,
+.engine-lesson-footer > button {
+  min-height: 46px;
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .engine-section-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .engine-section-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .engine-section-nav button {
+    flex: 0 0 auto;
+  }
+}

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { LayoutTemplate } from 'lucide-vue-next'
+import { LayoutTemplate, ShieldAlert } from 'lucide-vue-next'
 import FullscreenLayout from '@/layouts/fullscreen.vue'
 import LessonBlockInspector from '@/components/lesson/editor/LessonBlockInspector.vue'
 import LessonBlockPalette from '@/components/lesson/editor/LessonBlockPalette.vue'
@@ -54,7 +54,7 @@ const {
 
 <template>
   <FullscreenLayout>
-    <div v-if="found" class="product-editor">
+    <div v-if="found?.course.accessRole === 'creator'" class="product-editor">
       <LessonEditorTopbar
         :course-id="found.course.id"
         :course-title="found.course.title"
@@ -113,6 +113,12 @@ const {
         @select="chooseBlock"
       />
     </div>
+    <section v-else-if="found" class="product-empty full course-access-denied">
+      <ShieldAlert />
+      <h2>Редактор доступен только автору</h2>
+      <p>Вы подключены к этому курсу как ученик. Материалы можно проходить, но нельзя изменять.</p>
+      <RouterLink :to="`/preview/courses/${found.course.id}`" class="product-button">Перейти к обучению</RouterLink>
+    </section>
     <section v-else class="product-empty full">
       <LayoutTemplate />
       <h2>Урок не найден</h2>

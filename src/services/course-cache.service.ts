@@ -1,7 +1,7 @@
 import type { Course } from '@/types/course'
 
-const SUPABASE_CACHE_PREFIX = 'course-platform-cache-v1-'
-const DEMO_CACHE_KEY = 'cursor-courses-v3'
+const SUPABASE_CACHE_PREFIX = 'course-platform-cache-v2-'
+const DEMO_CACHE_KEY = 'cursor-courses-v4'
 
 function normalizeCachedCourse(course: Course): Course {
   const ownerId = course.ownerId || 'legacy-owner'

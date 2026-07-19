@@ -8,6 +8,16 @@ export interface CourseCreator {
   avatarUrl?: string
 }
 
+export interface CourseLearningPlan {
+  durationWeeks: number
+  sessionsPerWeek: number
+  sessionMinutes: number
+  totalSessions: number
+  checkpointCount: number
+  cadence: string
+  outcome: string
+}
+
 export type BlockType =
   | 'heading'
   | 'text'
@@ -103,6 +113,7 @@ export interface Course {
   accessRole: CourseAccessRole
   creator: CourseCreator
   joinCode?: string
+  learningPlan?: CourseLearningPlan
   title: string
   description: string
   cover: string

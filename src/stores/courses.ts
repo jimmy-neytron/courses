@@ -4,7 +4,7 @@ import type { BlockType, Course, LessonSectionConfig } from '@/types/course'
 import { createLessonSectionConfig } from '@/composables/useCourseSections'
 import { useAuthStore } from '@/stores/auth'
 import { isSupabaseConfigured, requireSupabase } from '@/services/supabase'
-import { buildEnglishEngineDemoCourse, seedEnglishEngineCourse } from '@/services/seed-english-engine'
+import { buildEnglish90DayDemoCourse, seedEnglish90DayCourse } from '@/services/seed-english-90-day-course'
 import { createLessonAudioUrl, uploadLessonAudio } from '@/services/lesson-audio.service'
 import { createLessonPdfUrl, uploadLessonPdf } from '@/services/lesson-pdf.service'
 import { deleteLessonAssets, releaseLessonObjectUrls } from '@/services/lesson-assets.service'
@@ -25,7 +25,7 @@ import {
 } from '@/services/lesson-block-content.service'
 import { slugify } from '@/utils/slugify'
 
-const demoCourses: Course[] = [buildEnglishEngineDemoCourse()]
+const demoCourses: Course[] = [buildEnglish90DayDemoCourse()]
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
@@ -93,22 +93,22 @@ export const useCourseStore = defineStore('courses', () => {
       if (!courses.value.length) loading.value = true
 
       try {
-        const seedKey = `english-engine-seeded-v1-${organizationId}`
+        const seedKey = `english-90-days-seeded-v1-${organizationId}`
         if (localStorage.getItem(seedKey) !== 'true') {
-          await seedEnglishEngineCourse(organizationId, userId)
+          await seedEnglish90DayCourse(organizationId, userId)
           localStorage.setItem(seedKey, 'true')
         }
 
         const database = requireSupabase()
         let { data, error } = await database
           .from('courses')
-          .select('id,owner_id,title,description,status,target_level,accent_color,updated_at,owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url),course_memberships(user_id,role),course_invites(code),course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))')
+          .select('id,owner_id,title,description,status,source_level,target_level,duration_weeks,lessons_per_week,default_lesson_duration,accent_color,updated_at,owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url),course_memberships(user_id,role),course_invites(code),course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))')
           .order('updated_at', { ascending: false })
 
         if (error && ['42P01', 'PGRST200', 'PGRST205'].includes(error.code ?? '')) {
           const fallback = await database
             .from('courses')
-            .select('id,owner_id,title,description,status,target_level,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))')
+            .select('id,owner_id,title,description,status,source_level,target_level,duration_weeks,lessons_per_week,default_lesson_duration,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))')
             .eq('organization_id', organizationId)
             .order('updated_at', { ascending: false })
           data = fallback.data as unknown as typeof data

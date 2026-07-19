@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Course } from '@/types/course'
 import CourseRoleBadge from '@/components/course/CourseRoleBadge.vue'
+import CourseLearningPlan from '@/components/course/CourseLearningPlan.vue'
 
 defineProps<{ course: Course; moduleCount: number; lessonCount: number; totalMinutes: number }>()
 </script>
@@ -19,5 +20,6 @@ defineProps<{ course: Course; moduleCount: number; lessonCount: number; totalMin
         <div><dt>Автор</dt><dd>{{ course.creator.name }}</dd></div>
       </dl>
     </article>
+    <CourseLearningPlan v-if="course.learningPlan" :plan="course.learningPlan" />
   </section>
 </template>

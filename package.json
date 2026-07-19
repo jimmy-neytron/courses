@@ -6,7 +6,8 @@
     "scripts": {
         "dev": "vite",
         "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
-        "typecheck": "vue-tsc --noEmit -p tsconfig.app.json"
+        "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
+        "audit:course": "node scripts/audit-english-course.mjs"
     },
     "dependencies": {
         "@primeuix/themes": "2.0.3",

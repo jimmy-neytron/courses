@@ -136,6 +136,13 @@ export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course 
   const ownerId = String(row.owner_id ?? '')
   const owner = asRecord(row.owner)
   const invite = asRows(row.course_invites)[0]
+  const totalSessions = modules.reduce((total, module) => total + module.lessons.length, 0)
+  const checkpointCount = modules.reduce((total, module) => total + module.lessons.filter(
+    (lesson) => lesson.blocks.filter((block) => block.type === 'single_choice').length >= 12,
+  ).length, 0)
+  const durationWeeks = Number(row.duration_weeks ?? 0)
+  const sessionsPerWeek = Number(row.lessons_per_week ?? 0)
+  const sessionMinutes = Number(row.default_lesson_duration ?? 0)
 
   return {
     id: String(row.id),
@@ -147,6 +154,15 @@ export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course 
       avatarUrl: String(owner.avatar_url ?? '') || undefined,
     },
     joinCode: invite ? String(invite.code ?? '') || undefined : undefined,
+    learningPlan: durationWeeks && sessionsPerWeek && sessionMinutes ? {
+      durationWeeks,
+      sessionsPerWeek,
+      sessionMinutes,
+      totalSessions,
+      checkpointCount,
+      cadence: `${sessionsPerWeek} занятий в неделю`,
+      outcome: `Путь от ${String(row.source_level ?? 'стартового уровня')} до ${String(row.target_level ?? 'целевого уровня')}`,
+    } : undefined,
     title: String(row.title),
     description: String(row.description ?? ''),
     cover: `linear-gradient(135deg,${String(row.accent_color ?? '#3AC3A6')},#142d39)`,

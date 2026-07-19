@@ -161,7 +161,94 @@
   line-height: 1.65;
 }
 
+.product-overview .course-learning-plan {
+  grid-column: 1 / -1;
+  padding: 24px;
+}
+
+.course-learning-plan > header {
+  position: static;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0 0 18px;
+  border: 0;
+  background: transparent;
+}
+
+.course-learning-plan > header div {
+  display: grid;
+  gap: 5px;
+}
+
+.course-learning-plan > header span {
+  color: #64df9c;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.course-learning-plan > header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.course-learning-plan > header > svg {
+  width: 22px;
+  height: 22px;
+  color: #68e5a0;
+}
+
+.course-learning-plan dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.course-learning-plan dl > div {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 3px 9px;
+  padding: 13px;
+  border: 1px solid #26382d;
+  border-radius: 11px;
+  background: #0c140f;
+}
+
+.course-learning-plan dl svg {
+  grid-row: 1 / span 2;
+  width: 17px;
+  height: 17px;
+  color: #5ed494;
+}
+
+.course-learning-plan dt {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.course-learning-plan dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.course-learning-plan > p {
+  margin: 16px 0 0;
+  color: #9aaba1;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
 @media (max-width: 760px) {
+  .course-learning-plan dl {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .course-filter-toolbar > label,
   .course-filter-toolbar .p-selectbutton {
     width: 100%;

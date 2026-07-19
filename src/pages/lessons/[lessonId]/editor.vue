@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { VueDraggable } from 'vue-draggable-plus'
 import { ArrowLeft, BookOpen, Brain, Check, ChevronRight, Dumbbell, Eye, FileText, GripVertical, Heading, Languages, LayoutTemplate, Link, ListChecks, MessageCircle, MessageSquare, Music2, Plus, Save, Search, Settings2, ShieldAlert, SlidersHorizontal, Text, Trash2, Upload } from 'lucide-vue-next'
 import AppModal from '@/components/AppModal.vue'
+import FullscreenLayout from '@/layouts/fullscreen.vue'
 import UiButton from '@/components/ui/button/UiButton.vue'
 import UiSwitch from '@/components/ui/switch/UiSwitch.vue'
 import LessonAudioPlayer from '@/components/lesson/LessonAudioPlayer.vue'
@@ -18,7 +19,6 @@ const store = useCourseStore()
 const found = computed(() => store.findLesson(String(route.params.lessonId)))
 const blocks = computed<LessonBlock[]>({ get:() => found.value?.lesson.blocks ?? [], set:(value) => { if(found.value)found.value.lesson.blocks=value } })
 const sectionDraft = ref<LessonSectionConfig[]>([])
-const ready = ref(false)
 const selectedId = ref('')
 const selected = computed(() => blocks.value.find((item) => item.id === selectedId.value) ?? blocks.value[0])
 const selectedIndex = computed(() => selected.value ? blocks.value.findIndex((item) => item.id === selected.value?.id) : -1)
@@ -94,12 +94,11 @@ async function uploadAudioFile(event:Event){const file=(event.target as HTMLInpu
 async function uploadPdfFile(event:Event){const file=(event.target as HTMLInputElement).files?.[0];if(!file||!found.value||!selected.value)return;uploading.value=true;editorError.value='';try{await store.uploadPdf(found.value.lesson.id,selected.value.id,file);saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось загрузить PDF'}finally{uploading.value=false;(event.target as HTMLInputElement).value=''}}
 function openSections(){sectionDraft.value=createLessonSectionConfig(found.value?.lesson.sectionConfig);showSections.value=true}
 async function saveSections(){if(!found.value)return;sectionSaving.value=true;editorError.value='';try{await store.saveLessonSections(found.value.lesson.id,sectionDraft.value);showSections.value=false;saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось сохранить разделы'}finally{sectionSaving.value=false}}
-onMounted(async()=>{await store.hydrate();ready.value=true})
 </script>
 
 <template>
-  <section v-if="!ready" class="engine-loading"><span></span><h2>Загружаем редактор…</h2></section>
-  <div v-else-if="found" class="product-editor">
+  <FullscreenLayout>
+  <div v-if="found" class="product-editor">
     <header class="product-editor-topbar">
       <RouterLink :to="`/app/courses/${found.course.id}`" class="editor-back"><ArrowLeft /></RouterLink>
       <div class="editor-crumbs"><span>{{ found.course.title }}</span><ChevronRight /><strong>{{ found.lesson.title }}</strong></div>
@@ -186,4 +185,5 @@ onMounted(async()=>{await store.hydrate();ready.value=true})
     </AppModal>
   </div>
   <section v-else class="product-empty full"><LayoutTemplate /><h2>Урок не найден</h2><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
+  </FullscreenLayout>
 </template>

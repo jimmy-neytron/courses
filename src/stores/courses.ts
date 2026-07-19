@@ -15,6 +15,7 @@ const demoCourses:Course[] = [buildEnglishEngineDemoCourse()]
 const dbType = (type:BlockType) => ({ text:'rich_text', conversation:'open_answer', error_correction:'grammar', practice:'homework', pdf:'file' } as Partial<Record<BlockType,string>>)[type] ?? type
 const asRecord = (value:unknown):Record<string,unknown> => value && typeof value === 'object' ? value as Record<string,unknown> : {}
 const defaultLessonSectionsIds = new Set<LessonSectionId>(['theory','conversation','listening','cards','errors','translation','practice','test'])
+const COURSES_CACHE_PREFIX = 'course-platform-cache-v1-'
 
 export const useCourseStore = defineStore('courses', () => {
   const saved = localStorage.getItem('cursor-courses-v3')
@@ -22,6 +23,9 @@ export const useCourseStore = defineStore('courses', () => {
   const learners = ref<Learner[]>([])
   const loading = ref(false)
   const loadError = ref('')
+  let hydratedOrganizationId = ''
+  let bootstrapPromise:Promise<void>|undefined
+  let refreshPromise:Promise<void>|undefined
   if (!isSupabaseConfigured) watch(courses, (value) => localStorage.setItem('cursor-courses-v3', JSON.stringify(value)), { deep:true })
 
   const totalLessons = computed(() => courses.value.reduce((sum, course) => sum + course.modules.reduce((value, module) => value + module.lessons.length, 0), 0))
@@ -85,29 +89,63 @@ export const useCourseStore = defineStore('courses', () => {
       } catch { if (block.audioPath) block.audioUrl='';if(block.filePath)block.fileUrl='' }
     })))))
   }
-  async function hydrate() {
-    if (!isSupabaseConfigured) return
-    const auth = useAuthStore()
-    loading.value = true
-    loadError.value = ''
+  function readCourseCache(organizationId:string):Course[] {
     try {
-      if (!auth.organization) await auth.loadOrganization()
-      if (!auth.organization || !auth.user) { courses.value=[];return }
-      const seedKey = 'english-engine-seeded-v1-' + auth.organization.id
-      if (localStorage.getItem(seedKey) !== 'true') { await seedEnglishEngineCourse(auth.organization.id,auth.user.id);localStorage.setItem(seedKey,'true') }
-      const { data, error } = await requireSupabase().from('courses').select('id,title,description,status,target_level,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))').eq('organization_id',auth.organization.id).order('updated_at',{ascending:false})
-      if (error) throw error
-      courses.value = ((data??[]) as unknown as Record<string,unknown>[]).map(mapDbCourse)
-      await resolveAssetUrls()
-    } catch (error) { loadError.value=error instanceof Error ? error.message : 'Не удалось загрузить курсы' } finally { loading.value=false }
+      const cached=sessionStorage.getItem(COURSES_CACHE_PREFIX+organizationId)
+      if(!cached)return[]
+      const value=JSON.parse(cached) as unknown
+      return Array.isArray(value)?value as Course[]:[]
+    } catch { return[] }
+  }
+  function writeCourseCache(organizationId:string){
+    try{sessionStorage.setItem(COURSES_CACHE_PREFIX+organizationId,JSON.stringify(courses.value))}catch{return}
+  }
+  function refreshCourses(organizationId:string,userId:string):Promise<void>{
+    if(refreshPromise)return refreshPromise
+    refreshPromise=(async()=>{
+      loadError.value=''
+      if(!courses.value.length)loading.value=true
+      try{
+        const seedKey='english-engine-seeded-v1-'+organizationId
+        if(localStorage.getItem(seedKey)!=='true'){await seedEnglishEngineCourse(organizationId,userId);localStorage.setItem(seedKey,'true')}
+        const{data,error}=await requireSupabase().from('courses').select('id,title,description,status,target_level,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))').eq('organization_id',organizationId).order('updated_at',{ascending:false})
+        if(error)throw error
+        courses.value=((data??[])as unknown as Record<string,unknown>[]).map(mapDbCourse)
+        await resolveAssetUrls()
+        hydratedOrganizationId=organizationId
+        writeCourseCache(organizationId)
+      }catch(error){loadError.value=error instanceof Error?error.message:'Не удалось загрузить курсы'}
+      finally{loading.value=false}
+    })().finally(()=>{refreshPromise=undefined})
+    return refreshPromise
+  }
+  function hydrate(force=false):Promise<void>{
+    if(!isSupabaseConfigured)return Promise.resolve()
+    const currentOrganizationId=useAuthStore().organization?.id
+    if(!force&&currentOrganizationId&&hydratedOrganizationId===currentOrganizationId)return Promise.resolve()
+    if(refreshPromise)return courses.value.length&&!force?Promise.resolve():refreshPromise
+    if(bootstrapPromise)return bootstrapPromise
+    bootstrapPromise=(async()=>{
+      const auth=useAuthStore()
+      if(!auth.organization)await auth.loadOrganization()
+      if(!auth.organization||!auth.user){courses.value=[];return}
+      if(!force&&hydratedOrganizationId===auth.organization.id)return
+      if(hydratedOrganizationId&&hydratedOrganizationId!==auth.organization.id)courses.value=[]
+      if(!force&&!courses.value.length){
+        const cached=readCourseCache(auth.organization.id)
+        if(cached.length){courses.value=cached;hydratedOrganizationId=auth.organization.id;loading.value=false;void refreshCourses(auth.organization.id,auth.user.id);return}
+      }
+      await refreshCourses(auth.organization.id,auth.user.id)
+    })().catch((error)=>{loadError.value=error instanceof Error?error.message:'Не удалось загрузить курсы';loading.value=false}).finally(()=>{bootstrapPromise=undefined})
+    return bootstrapPromise
   }
   async function createCourse(title:string, description:string) {
     if (!isSupabaseConfigured) { const id=`course-${Date.now()}`;courses.value.unshift({id,title,description,cover:'linear-gradient(135deg,#176452,#3ac3a6)',tag:'EN',status:'Черновик',students:0,progress:0,updated:'Только что',modules:[]});return id }
     const auth=useAuthStore();if(!auth.organization||!auth.user)throw new Error('Организация пользователя не найдена')
-    const { data,error }=await requireSupabase().from('courses').insert({organization_id:auth.organization.id,owner_id:auth.user.id,title,description,slug:slugify(title,'course'),language_code:'en',source_level:'A0',target_level:'B2'}).select('id').single();if(error)throw error;await hydrate();return String(data.id)
+    const { data,error }=await requireSupabase().from('courses').insert({organization_id:auth.organization.id,owner_id:auth.user.id,title,description,slug:slugify(title,'course'),language_code:'en',source_level:'A0',target_level:'B2'}).select('id').single();if(error)throw error;await hydrate(true);return String(data.id)
   }
-  async function addModule(courseId:string,title='Новый модуль'){const course=findCourse(courseId);if(!course)return;if(!isSupabaseConfigured){course.modules.push({id:`module-${Date.now()}`,title,open:true,lessons:[]});return}const{error}=await requireSupabase().from('course_modules').insert({course_id:courseId,title,position:course.modules.length});if(error)throw error;await hydrate()}
-  async function addLesson(courseId:string,moduleId:string,title='Новый урок'){const module=findCourse(courseId)?.modules.find((item)=>item.id===moduleId);if(!module)return;if(!isSupabaseConfigured){const id=`lesson-${Date.now()}`;module.lessons.push({id,title,duration:45,status:'Черновик',blocks:[],sectionConfig:createLessonSectionConfig()});return id}const{data,error}=await requireSupabase().from('lessons').insert({course_id:courseId,module_id:moduleId,title,slug:slugify(title,'lesson'),duration_minutes:45,position:module.lessons.length}).select('id').single();if(error)throw error;await hydrate();return String(data.id)}
+  async function addModule(courseId:string,title='Новый модуль'){const course=findCourse(courseId);if(!course)return;if(!isSupabaseConfigured){course.modules.push({id:`module-${Date.now()}`,title,open:true,lessons:[]});return}const{error}=await requireSupabase().from('course_modules').insert({course_id:courseId,title,position:course.modules.length});if(error)throw error;await hydrate(true)}
+  async function addLesson(courseId:string,moduleId:string,title='Новый урок'){const module=findCourse(courseId)?.modules.find((item)=>item.id===moduleId);if(!module)return;if(!isSupabaseConfigured){const id=`lesson-${Date.now()}`;module.lessons.push({id,title,duration:45,status:'Черновик',blocks:[],sectionConfig:createLessonSectionConfig()});return id}const{data,error}=await requireSupabase().from('lessons').insert({course_id:courseId,module_id:moduleId,title,slug:slugify(title,'lesson'),duration_minutes:45,position:module.lessons.length}).select('id').single();if(error)throw error;await hydrate(true);return String(data.id)}
 
   const defaults:Record<BlockType,[string,string,Partial<LessonBlock>?]> = {
     heading:['Заголовок','Новый раздел'], text:['Текст','Добавьте объяснение и примеры.'], callout:['Важно','Добавьте ключевую мысль.'], grammar:['Теория','Подробно объясните материал.'], vocabulary:['Словарь','Добавьте термины и примеры.'], practice:['Практика','Добавьте активное задание.'],
@@ -124,7 +162,7 @@ export const useCourseStore = defineStore('courses', () => {
     return{kind:item.type,sectionId:item.sectionId,content:item.content,audioPath:item.audioPath,audioUrl:item.audioPath?undefined:item.audioUrl,transcript:item.transcript}
   }
   function privateContent(item:LessonBlock){return item.type==='single_choice'?{correctOption:item.correctOption??0,explanation:item.explanation??''}:item.type==='translation'?{targetText:item.targetText}:{}}
-  async function addBlock(lessonId:string,type:BlockType){const found=findLesson(lessonId);if(!found)return;const[title,content,extra={}]=defaults[type];if(!isSupabaseConfigured){found.lesson.blocks.push(makeBlock(`block-${Date.now()}`,type,title,content,extra));return}const item=makeBlock('',type,title,content,extra);const{error}=await requireSupabase().from('lesson_blocks').insert({course_id:found.course.id,lesson_id:lessonId,block_type:dbType(type),title,public_content:publicContent(item),private_content:privateContent(item),position:found.lesson.blocks.length});if(error)throw error;await hydrate()}
+  async function addBlock(lessonId:string,type:BlockType){const found=findLesson(lessonId);if(!found)return;const[title,content,extra={}]=defaults[type];if(!isSupabaseConfigured){found.lesson.blocks.push(makeBlock(`block-${Date.now()}`,type,title,content,extra));return}const item=makeBlock('',type,title,content,extra);const{error}=await requireSupabase().from('lesson_blocks').insert({course_id:found.course.id,lesson_id:lessonId,block_type:dbType(type),title,public_content:publicContent(item),private_content:privateContent(item),position:found.lesson.blocks.length});if(error)throw error;await hydrate(true)}
   async function saveLesson(lessonId:string){const found=findLesson(lessonId);if(!found||!isSupabaseConfigured)return;const{error}=await requireSupabase().from('lessons').update({title:found.lesson.title,duration_minutes:found.lesson.duration,status:found.lesson.status==='Опубликован'?'published':'draft'}).eq('id',lessonId);if(error)throw error}
   async function saveBlock(lessonId:string,blockId:string){if(!isSupabaseConfigured)return;const item=findLesson(lessonId)?.lesson.blocks.find((block)=>block.id===blockId);if(!item)return;const{error}=await requireSupabase().from('lesson_blocks').update({title:item.title,public_content:publicContent(item),private_content:privateContent(item),is_required:item.required}).eq('id',blockId);if(error)throw error}
   async function saveLessonSections(lessonId:string,sections:LessonSectionConfig[]){const found=findLesson(lessonId);if(!found)return;found.lesson.sectionConfig=createLessonSectionConfig(sections);if(!isSupabaseConfigured)return;const payload={kind:'section_config',sections:found.lesson.sectionConfig};if(found.lesson.sectionConfigBlockId){const{error}=await requireSupabase().from('lesson_blocks').update({public_content:payload}).eq('id',found.lesson.sectionConfigBlockId);if(error)throw error;return}const{data,error}=await requireSupabase().from('lesson_blocks').insert({course_id:found.course.id,lesson_id:lessonId,block_type:'summary',title:'Настройки разделов',public_content:payload,private_content:{},is_required:false,position:9999}).select('id').single();if(error)throw error;found.lesson.sectionConfigBlockId=String(data.id)}
@@ -145,7 +183,7 @@ export const useCourseStore = defineStore('courses', () => {
   }
   async function saveCourse(courseId:string){const course=findCourse(courseId);if(!course||!isSupabaseConfigured)return;const{error}=await requireSupabase().from('courses').update({title:course.title,description:course.description}).eq('id',courseId);if(error)throw error;course.updated='Только что'}
   async function deleteCourse(courseId:string){const index=courses.value.findIndex((course)=>course.id===courseId);if(index<0)return;if(isSupabaseConfigured){const{error}=await requireSupabase().from('courses').delete().eq('id',courseId);if(error)throw error}courses.value.splice(index,1)}
-  async function publishCourse(id:string){if(!isSupabaseConfigured){const course=findCourse(id);if(course)course.status='Опубликован';return}const{error}=await requireSupabase().rpc('publish_course',{p_course_id:id,p_changelog:'Published from Course Platform'});if(error)throw error;await hydrate()}
+  async function publishCourse(id:string){if(!isSupabaseConfigured){const course=findCourse(id);if(course)course.status='Опубликован';return}const{error}=await requireSupabase().rpc('publish_course',{p_course_id:id,p_changelog:'Published from Course Platform'});if(error)throw error;await hydrate(true)}
   async function persistCourseOrder(courseId:string){const course=findCourse(courseId);if(!course||!isSupabaseConfigured)return;const moduleResults=await Promise.all(course.modules.map((module,position)=>requireSupabase().from('course_modules').update({position}).eq('id',module.id)));const moduleError=moduleResults.find((result)=>result.error)?.error;if(moduleError)throw moduleError;const lessonResults=await Promise.all(course.modules.flatMap((module)=>module.lessons.map((lesson,position)=>requireSupabase().from('lessons').update({module_id:module.id,position}).eq('id',lesson.id))));const lessonError=lessonResults.find((result)=>result.error)?.error;if(lessonError)throw lessonError}
   async function persistBlockOrder(lessonId:string){const found=findLesson(lessonId);if(!found||!isSupabaseConfigured)return;const results=await Promise.all(found.lesson.blocks.map((item,position)=>requireSupabase().from('lesson_blocks').update({position}).eq('id',item.id)));const error=results.find((result)=>result.error)?.error;if(error)throw error}
   function resetDemo(){if(!isSupabaseConfigured){courses.value=structuredClone(demoCourses);localStorage.removeItem('cursor-courses-v3')}}

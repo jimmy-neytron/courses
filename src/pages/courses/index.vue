@@ -2,6 +2,10 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Search } from 'lucide-vue-next'
+import PrimeButton from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import SelectButton from 'primevue/selectbutton'
+import Textarea from 'primevue/textarea'
 import DefaultLayout from '@/layouts/default.vue'
 import AppModal from '@/components/AppModal.vue'
 import CourseCard from '@/components/CourseCard.vue'
@@ -13,6 +17,7 @@ const store = useCourseStore()
 const router = useRouter()
 const query = ref('')
 const status = ref<CourseStatus | 'Все'>('Все')
+const statusOptions: Array<CourseStatus | 'Все'> = ['Все', 'Опубликован', 'Черновик']
 const showCreate = ref(false)
 const title = ref('')
 const description = ref('')
@@ -53,11 +58,11 @@ async function confirmDelete() {
   <DefaultLayout>
     <div class="page-title">
       <div><h1>Курсы</h1><p>Создавайте, публикуйте и обновляйте учебные программы.</p></div>
-      <button class="primary" @click="showCreate = true"><Plus />Создать курс</button>
+      <PrimeButton @click="showCreate = true"><Plus />Создать курс</PrimeButton>
     </div>
     <div class="toolbar">
-      <label><Search /><input v-model="query" placeholder="Найти курс" /></label>
-      <button v-for="item in (['Все', 'Опубликован', 'Черновик'] as const)" :key="item" :class="['filter', status === item && 'active']" @click="status = item">{{ item }}</button>
+      <label><Search /><InputText v-model="query" placeholder="Найти курс" /></label>
+      <SelectButton v-model="status" :options="statusOptions" :allow-empty="false" />
     </div>
     <section v-if="filtered.length" class="course-grid">
       <CourseCard v-for="course in filtered" :key="course.id" :course="course" deletable @delete="openDelete" />
@@ -66,11 +71,11 @@ async function confirmDelete() {
 
     <AppModal v-if="showCreate" title="Новый курс" @close="showCreate = false">
       <form class="form" @submit.prevent="create">
-        <label>Название<input v-model="title" autofocus placeholder="Например, Основы испанского" /></label>
-        <label>Описание<textarea v-model="description" placeholder="Коротко расскажите о курсе"></textarea></label>
+        <label>Название<InputText v-model="title" autofocus placeholder="Например, Основы испанского" fluid /></label>
+        <label>Описание<Textarea v-model="description" placeholder="Коротко расскажите о курсе" rows="5" auto-resize fluid /></label>
         <div class="form-actions">
-          <button type="button" class="ghost" @click="showCreate = false">Отмена</button>
-          <button class="primary">Создать курс</button>
+          <PrimeButton type="button" severity="secondary" outlined @click="showCreate = false">Отмена</PrimeButton>
+          <PrimeButton type="submit">Создать курс</PrimeButton>
         </div>
       </form>
     </AppModal>

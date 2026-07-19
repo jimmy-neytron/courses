@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowUpRight, BookOpen, Clock3, Trash2 } from 'lucide-vue-next'
+import PrimeButton from 'primevue/button'
 import type { Course } from '@/types/course'
 
 const props = withDefaults(defineProps<{ course: Course; deletable?: boolean }>(), { deletable: false })
@@ -28,8 +29,8 @@ const minutes = computed(() => props.course.modules.reduce((sum, module) => sum 
         </div>
       </div>
     </RouterLink>
-    <button v-if="deletable" class="course-card-delete" :aria-label="`Удалить курс ${course.title}`" @click="emit('delete', course)">
+    <PrimeButton v-if="deletable" severity="danger" text rounded class="course-card-delete" :aria-label="`Удалить курс ${course.title}`" @click="emit('delete', course)">
       <Trash2 />
-    </button>
+    </PrimeButton>
   </article>
 </template>

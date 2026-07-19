@@ -3,10 +3,12 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { VueDraggable } from 'vue-draggable-plus'
 import { ArrowLeft, BookOpen, Check, ChevronDown, Clock3, Eye, FileText, GripVertical, LayoutList, Plus, Settings2, Sparkles, Save, Trash2 } from 'lucide-vue-next'
+import PrimeButton from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
 import DefaultLayout from '@/layouts/default.vue'
 import AppModal from '@/components/AppModal.vue'
 import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
-import UiButton from '@/components/ui/button/UiButton.vue'
 import { useCourseStore } from '@/stores/courses'
 import type { CourseModule } from '@/types/course'
 
@@ -62,10 +64,10 @@ async function confirmDelete(){if(!course.value)return;deleting.value=true;delet
 <div class="product-course-actions">
 <RouterLink :to="`/preview/courses/${course.id}`" class="product-button product-button--secondary">
 <Eye/>Предпросмотр</RouterLink>
-<UiButton :disabled="course.status==='Опубликован'" @click="store.publishCourse(course.id)">
-<Sparkles/>{{course.status==='Опубликован'?'Опубликовано':'Опубликовать'}}</UiButton>
-<UiButton variant="danger" @click="showDelete=true">
-<Trash2/>Удалить курс</UiButton>
+<PrimeButton :disabled="course.status==='Опубликован'" @click="store.publishCourse(course.id)">
+<Sparkles/>{{course.status==='Опубликован'?'Опубликовано':'Опубликовать'}}</PrimeButton>
+<PrimeButton severity="danger" outlined @click="showDelete=true">
+<Trash2/>Удалить курс</PrimeButton>
 </div>
 </section>
 <div v-if="actionError" class="product-alert is-error">{{actionError}}</div>
@@ -84,8 +86,8 @@ async function confirmDelete(){if(!course.value)return;deleting.value=true;delet
 <span v-if="orderSaving">Сохраняем…</span>
 <span v-else-if="saved" class="is-success">
 <Check/>Сохранено</span>
-<UiButton variant="secondary" @click="showModule=true">
-<Plus/>Новый модуль</UiButton>
+<PrimeButton severity="secondary" outlined @click="showModule=true">
+<Plus/>Новый модуль</PrimeButton>
 </div>
 </div>
 <VueDraggable v-model="modules" item-key="id" handle=".module-drag-handle" :animation="180" ghost-class="drag-ghost" :force-fallback="true" fallback-class="drag-fallback" chosen-class="drag-chosen" class="product-modules" @end="persistOrder">
@@ -134,8 +136,8 @@ async function confirmDelete(){if(!course.value)return;deleting.value=true;delet
 <BookOpen/>
 <h3>Начните с первого модуля</h3>
 <p>Соберите программу из логичных этапов и добавьте уроки.</p>
-<UiButton @click="showModule=true">
-<Plus/>Создать модуль</UiButton>
+<PrimeButton @click="showModule=true">
+<Plus/>Создать модуль</PrimeButton>
 </div>
 </section>
 <section v-else-if="tab==='overview'" class="product-section product-overview">
@@ -173,14 +175,13 @@ async function confirmDelete(){if(!course.value)return;deleting.value=true;delet
 <p>Изменения сохраняются в Supabase.</p>
 </div>
 <form @submit.prevent="saveSettings">
-<label>Название<input v-model="course.title"/>
+<label>Название<InputText v-model="course.title" fluid/>
 </label>
-<label>Описание<textarea v-model="course.description">
-</textarea>
+<label>Описание<Textarea v-model="course.description" rows="5" auto-resize fluid/>
 </label>
 <div>
-<UiButton type="submit">
-<Save/>Сохранить изменения</UiButton>
+<PrimeButton type="submit">
+<Save/>Сохранить изменения</PrimeButton>
 <span v-if="saved" class="is-success">
 <Check/>Сохранено</span>
 </div>
@@ -189,21 +190,21 @@ async function confirmDelete(){if(!course.value)return;deleting.value=true;delet
 </div>
 <AppModal v-if="showModule" title="Новый модуль" @close="showModule=false">
 <form class="form" @submit.prevent="createModule">
-<label>Название модуля<input v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency"/>
+<label>Название модуля<InputText v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency" fluid/>
 </label>
 <div class="form-actions">
-<UiButton variant="secondary" @click="showModule=false">Отмена</UiButton>
-<UiButton type="submit">Добавить модуль</UiButton>
+<PrimeButton severity="secondary" outlined @click="showModule=false">Отмена</PrimeButton>
+<PrimeButton type="submit">Добавить модуль</PrimeButton>
 </div>
 </form>
 </AppModal>
 <AppModal v-if="showLesson" title="Новый урок" @close="showLesson=false">
 <form class="form" @submit.prevent="createLesson">
-<label>Название урока<input v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills"/>
+<label>Название урока<InputText v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid/>
 </label>
 <div class="form-actions">
-<UiButton variant="secondary" @click="showLesson=false">Отмена</UiButton>
-<UiButton type="submit">Создать и открыть</UiButton>
+<PrimeButton severity="secondary" outlined @click="showLesson=false">Отмена</PrimeButton>
+<PrimeButton type="submit">Создать и открыть</PrimeButton>
 </div>
 </form>
 </AppModal>

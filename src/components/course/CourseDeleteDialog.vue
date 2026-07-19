@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { AlertTriangle, Trash2 } from 'lucide-vue-next'
+import PrimeButton from 'primevue/button'
+import InputText from 'primevue/inputtext'
 import AppModal from '@/components/AppModal.vue'
-import UiButton from '@/components/ui/button/UiButton.vue'
 import type { Course } from '@/types/course'
 
 const props = defineProps<{ course: Course; pending?: boolean; error?: string }>()
@@ -24,14 +25,14 @@ watch(() => props.course.id, () => { confirmation.value = '' })
       <label>
         Для подтверждения введите название курса
         <b>{{ course.title }}</b>
-        <input v-model="confirmation" autocomplete="off" :placeholder="course.title" />
+        <InputText v-model="confirmation" autocomplete="off" :placeholder="course.title" fluid />
       </label>
       <p v-if="error" class="product-alert is-error">{{ error }}</p>
       <div class="form-actions">
-        <UiButton variant="secondary" :disabled="pending" @click="emit('close')">Отмена</UiButton>
-        <UiButton variant="danger" :disabled="pending || confirmation !== course.title" @click="emit('confirm')">
+        <PrimeButton label="Отмена" severity="secondary" outlined :disabled="pending" @click="emit('close')" />
+        <PrimeButton severity="danger" :loading="pending" :disabled="pending || confirmation !== course.title" @click="emit('confirm')">
           <Trash2 />{{ pending ? 'Удаляем…' : 'Удалить навсегда' }}
-        </UiButton>
+        </PrimeButton>
       </div>
     </div>
   </AppModal>

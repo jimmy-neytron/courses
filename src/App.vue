@@ -5,14 +5,5 @@ import RouteProgress from '@/components/loading/RouteProgress.vue'
 
 <template>
   <RouteProgress />
-  <RouterView v-slot="{ Component }">
-    <Transition name="page-fade">
-      <component :is="Component" />
-    </Transition>
-  </RouterView>
+  <RouterView />
 </template>
-
-<style>
-.page-fade-enter-active{transition:opacity .16s ease,transform .16s ease}.page-fade-enter-from{opacity:0;transform:translateY(3px)}
-@media(prefers-reduced-motion:reduce){.page-fade-enter-active{transition:none}}
-</style>

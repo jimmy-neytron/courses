@@ -1,1 +1,20 @@
-<script setup lang="ts">import{X}from'lucide-vue-next';import{DialogRoot,DialogPortal,DialogOverlay,DialogContent,DialogTitle,DialogClose}from'reka-ui';defineProps<{title:string}>();const emit=defineEmits<{close:[]}>()</script><template><DialogRoot :open="true" @update:open="value=>!value&&emit('close')"><DialogPortal><DialogOverlay class="modal-backdrop"/><DialogContent class="modal" @escape-key-down="emit('close')"><header><DialogTitle><h2>{{title}}</h2></DialogTitle><DialogClose class="icon-button" aria-label="Закрыть"><X/></DialogClose></header><div class="modal-content"><slot/></div></DialogContent></DialogPortal></DialogRoot></template>
+<script setup lang="ts">
+import Dialog from 'primevue/dialog'
+
+defineProps<{title:string}>()
+const emit=defineEmits<{close:[]}>()
+</script>
+
+<template>
+  <Dialog
+    :visible="true"
+    :header="title"
+    modal
+    dismissable-mask
+    class="app-dialog"
+    :style="{width:'min(540px, calc(100vw - 32px))'}"
+    @update:visible="value=>!value&&emit('close')"
+  >
+    <slot/>
+  </Dialog>
+</template>

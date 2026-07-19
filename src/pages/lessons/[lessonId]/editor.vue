@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useDebounceFn } from '@vueuse/core'
 import { VueDraggable } from 'vue-draggable-plus'
+import PrimeButton from 'primevue/button'
+import FileUpload from 'primevue/fileupload'
+import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
+import Textarea from 'primevue/textarea'
+import ToggleSwitch from 'primevue/toggleswitch'
+import type { FileUploadUploaderEvent } from 'primevue/fileupload'
 import { ArrowLeft, BookOpen, Brain, Check, ChevronRight, Dumbbell, Eye, FileText, GripVertical, Heading, Languages, LayoutTemplate, Link, ListChecks, MessageCircle, MessageSquare, Music2, Plus, Save, Search, Settings2, ShieldAlert, SlidersHorizontal, Text, Trash2, Upload } from 'lucide-vue-next'
 import AppModal from '@/components/AppModal.vue'
 import FullscreenLayout from '@/layouts/fullscreen.vue'
-import UiButton from '@/components/ui/button/UiButton.vue'
-import UiSwitch from '@/components/ui/switch/UiSwitch.vue'
 import LessonAudioPlayer from '@/components/lesson/LessonAudioPlayer.vue'
 import LessonPdfViewer from '@/components/lesson/LessonPdfViewer.vue'
 import LessonBlockContextMenu from '@/components/lesson/editor/LessonBlockContextMenu.vue'
@@ -26,7 +32,6 @@ const paletteQuery = ref('')
 const addQuery = ref('')
 const insertAfterIndex = ref(-1)
 const saving=ref(false), orderSaving=ref(false), saved=ref(false), uploading=ref(false), sectionSaving=ref(false), showSections=ref(false), showBlockPicker=ref(false), editorError=ref('')
-let timer:ReturnType<typeof setTimeout>|undefined
 
 const palette:Array<{type:BlockType;label:string;description:string;icon:typeof Heading}> = [
   {type:'heading',label:'Заголовок',description:'Название раздела',icon:Heading},
@@ -48,6 +53,7 @@ const filteredPalette = computed(() => filterPalette(paletteQuery.value))
 const pickerPalette = computed(() => filterPalette(addQuery.value))
 const availableSections = computed(() => createLessonSectionConfig(found.value?.lesson.sectionConfig))
 const selectedSectionId = computed(() => selected.value ? resolveLessonBlockSection(selected.value) : 'theory')
+const correctAnswerOptions=computed(()=>(selected.value?.options??[]).map((option,index)=>({label:`${String.fromCharCode(65+index)}. ${option}`,value:index})))
 
 function filterPalette(query:string){const normalized=query.trim().toLocaleLowerCase('ru');if(!normalized)return palette;return palette.filter((item)=>`${item.label} ${item.description}`.toLocaleLowerCase('ru').includes(normalized))}
 function openBlockPicker(afterIndex=selectedIndex.value){insertAfterIndex.value=Math.max(-1,afterIndex);addQuery.value='';showBlockPicker.value=true}
@@ -65,7 +71,8 @@ async function add(type:BlockType,afterIndex=selectedIndex.value){
   document.querySelector<HTMLElement>(`[data-block-id="${addedBlock.id}"]`)?.scrollIntoView({behavior:'smooth',block:'center'})
 }
 async function chooseBlock(type:BlockType){const afterIndex=insertAfterIndex.value;showBlockPicker.value=false;await add(type,afterIndex)}
-function scheduleSave(){saving.value=true;clearTimeout(timer);timer=setTimeout(async()=>{if(!found.value)return;try{await store.saveLesson(found.value.lesson.id);if(selected.value)await store.saveBlock(found.value.lesson.id,selected.value.id);saved.value=true;setTimeout(()=>saved.value=false,1200)}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось сохранить'}finally{saving.value=false}},700)}
+const persistChanges=useDebounceFn(async()=>{if(!found.value){saving.value=false;return}try{await store.saveLesson(found.value.lesson.id);if(selected.value)await store.saveBlock(found.value.lesson.id,selected.value.id);saved.value=true;setTimeout(()=>saved.value=false,1200)}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось сохранить'}finally{saving.value=false}},700)
+function scheduleSave(){saving.value=true;void persistChanges()}
 async function persistOrder(){if(!found.value)return;orderSaving.value=true;try{await store.persistBlockOrder(found.value.lesson.id);saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось сохранить порядок'}finally{orderSaving.value=false}}
 async function removeBlock(block:LessonBlock){
   if(!found.value)return
@@ -87,11 +94,11 @@ async function assignBlockSection(block:LessonBlock,sectionId:LessonSectionId){
   catch(error){block.sectionId=previousSectionId;editorError.value=error instanceof Error?error.message:'Не удалось изменить раздел блока'}
   finally{saving.value=false}
 }
-function assignSelectedSection(event:Event){if(selected.value)void assignBlockSection(selected.value,(event.target as HTMLSelectElement).value as LessonSectionId)}
+function assignSelectedSection(sectionId:LessonSectionId){if(selected.value)void assignBlockSection(selected.value,sectionId)}
 async function publish(){if(!found.value)return;found.value.lesson.status='Опубликован';await store.saveLesson(found.value.lesson.id);saved.value=true}
-function updateOptions(event:Event){if(!selected.value)return;selected.value.options=(event.target as HTMLTextAreaElement).value.split('\n').map((value)=>value.trim()).filter(Boolean);if((selected.value.correctOption??0)>=selected.value.options.length)selected.value.correctOption=0;scheduleSave()}
-async function uploadAudioFile(event:Event){const file=(event.target as HTMLInputElement).files?.[0];if(!file||!found.value||!selected.value)return;uploading.value=true;editorError.value='';try{await store.uploadAudio(found.value.lesson.id,selected.value.id,file);saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось загрузить аудио'}finally{uploading.value=false;(event.target as HTMLInputElement).value=''}}
-async function uploadPdfFile(event:Event){const file=(event.target as HTMLInputElement).files?.[0];if(!file||!found.value||!selected.value)return;uploading.value=true;editorError.value='';try{await store.uploadPdf(found.value.lesson.id,selected.value.id,file);saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось загрузить PDF'}finally{uploading.value=false;(event.target as HTMLInputElement).value=''}}
+function updateOptions(value:string|undefined){if(!selected.value)return;selected.value.options=(value??'').split('\n').map((item)=>item.trim()).filter(Boolean);if((selected.value.correctOption??0)>=selected.value.options.length)selected.value.correctOption=0;scheduleSave()}
+async function uploadAudioFile(event:FileUploadUploaderEvent){const file=Array.isArray(event.files)?event.files[0]:event.files;if(!file||!found.value||!selected.value)return;uploading.value=true;editorError.value='';try{await store.uploadAudio(found.value.lesson.id,selected.value.id,file);saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось загрузить аудио'}finally{uploading.value=false}}
+async function uploadPdfFile(event:FileUploadUploaderEvent){const file=Array.isArray(event.files)?event.files[0]:event.files;if(!file||!found.value||!selected.value)return;uploading.value=true;editorError.value='';try{await store.uploadPdf(found.value.lesson.id,selected.value.id,file);saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось загрузить PDF'}finally{uploading.value=false}}
 function openSections(){sectionDraft.value=createLessonSectionConfig(found.value?.lesson.sectionConfig);showSections.value=true}
 async function saveSections(){if(!found.value)return;sectionSaving.value=true;editorError.value='';try{await store.saveLessonSections(found.value.lesson.id,sectionDraft.value);showSections.value=false;saved.value=true}catch(error){editorError.value=error instanceof Error?error.message:'Не удалось сохранить разделы'}finally{sectionSaving.value=false}}
 </script>
@@ -102,16 +109,16 @@ async function saveSections(){if(!found.value)return;sectionSaving.value=true;ed
     <header class="product-editor-topbar">
       <RouterLink :to="`/app/courses/${found.course.id}`" class="editor-back"><ArrowLeft /></RouterLink>
       <div class="editor-crumbs"><span>{{ found.course.title }}</span><ChevronRight /><strong>{{ found.lesson.title }}</strong></div>
-      <UiButton variant="secondary" @click="openSections"><SlidersHorizontal />Разделы</UiButton>
+      <PrimeButton severity="secondary" outlined @click="openSections"><SlidersHorizontal />Разделы</PrimeButton>
       <div class="editor-save-state"><span v-if="saving||orderSaving||uploading">Сохраняем…</span><span v-else-if="saved"><Check />Сохранено</span></div>
       <RouterLink :to="`/preview/lessons/${found.lesson.id}`" class="product-button product-button--secondary"><Eye />Предпросмотр</RouterLink>
-      <UiButton @click="publish"><Save />{{ found.lesson.status==='Опубликован'?'Опубликовано':'Опубликовать' }}</UiButton>
+      <PrimeButton @click="publish"><Save />{{ found.lesson.status==='Опубликован'?'Опубликовано':'Опубликовать' }}</PrimeButton>
     </header>
 
     <aside class="product-palette">
       <div class="palette-sticky-head">
         <div class="editor-panel-title"><LayoutTemplate /><div><strong>Библиотека урока</strong><small>Вставка после выбранного блока</small></div></div>
-        <label class="palette-search"><Search /><input v-model="paletteQuery" type="search" placeholder="Найти формат…" aria-label="Найти формат блока" /></label>
+        <label class="palette-search"><Search /><InputText v-model="paletteQuery" type="search" placeholder="Найти формат…" aria-label="Найти формат блока" /></label>
       </div>
       <div class="palette-list"><button v-for="item in filteredPalette" :key="item.type" @click="add(item.type)"><span><component :is="item.icon" /></span><div><strong>{{ item.label }}</strong><small>{{ item.description }}</small></div><Plus /></button></div>
       <p v-if="!filteredPalette.length" class="palette-empty">Ничего не найдено</p>
@@ -119,7 +126,7 @@ async function saveSections(){if(!found.value)return;sectionSaving.value=true;ed
 
     <main class="product-canvas">
       <div v-if="editorError" class="product-alert is-error">{{ editorError }}</div>
-      <div class="editor-document-head"><span>Урок · {{ found.lesson.duration }} минут · {{ blocks.filter((block)=>block.type==='single_choice').length }} вопросов</span><input v-model="found.lesson.title" aria-label="Название урока" @input="scheduleSave" /><p>Порядок блоков и доступность разделов настраиваются независимо.</p></div>
+      <div class="editor-document-head"><span>Урок · {{ found.lesson.duration }} минут · {{ blocks.filter((block)=>block.type==='single_choice').length }} вопросов</span><InputText v-model="found.lesson.title" aria-label="Название урока" @update:model-value="scheduleSave" /><p>Порядок блоков и доступность разделов настраиваются независимо.</p></div>
       <VueDraggable v-model="blocks" item-key="id" handle=".block-drag-handle" :animation="180" ghost-class="drag-ghost" :force-fallback="true" chosen-class="drag-chosen" class="editor-block-list" @end="persistOrder">
         <LessonBlockContextMenu v-for="(item,index) in blocks" :key="item.id" :block-label="labels[item.type]" :block-number="index+1" :sections="availableSections" :active-section-id="resolveLessonBlockSection(item)" @assign="sectionId=>assignBlockSection(item,sectionId)" @add-below="openBlockPicker(index)" @remove="removeBlock(item)">
         <article :data-block-id="item.id" :class="['product-editor-block',selected?.id===item.id&&'is-selected']" @click="selectedId=item.id" @contextmenu="selectedId=item.id">
@@ -144,41 +151,41 @@ async function saveSections(){if(!found.value)return;sectionSaving.value=true;ed
     <aside class="product-inspector">
       <div class="editor-panel-title"><Settings2 /><div><strong>Настройки</strong><small>{{ selected?labels[selected.type]:'Блок не выбран' }}</small></div></div>
       <template v-if="selected">
-        <label>Раздел урока<select :value="selectedSectionId" @change="assignSelectedSection"><option v-for="section in availableSections" :key="section.id" :value="section.id">{{ section.label }}{{ section.visible?'':' · скрыт' }}</option></select><small class="inspector-help">Блок сохранит свой формат, изменится только вкладка в уроке.</small></label>
-        <label>Название блока<input v-model="selected.title" @input="scheduleSave" /></label>
-        <label v-if="selected.type!=='audio'">Описание<textarea v-model="selected.content" @input="scheduleSave"></textarea></label>
+        <label>Раздел урока<Select :model-value="selectedSectionId" :options="availableSections" option-label="label" option-value="id" fluid @update:model-value="assignSelectedSection"/><small class="inspector-help">Блок сохранит свой формат, изменится только вкладка в уроке.</small></label>
+        <label>Название блока<InputText v-model="selected.title" fluid @update:model-value="scheduleSave" /></label>
+        <label v-if="selected.type!=='audio'">Описание<Textarea v-model="selected.content" rows="6" auto-resize fluid @update:model-value="scheduleSave"/></label>
         <template v-if="selected.type==='audio'">
-          <div class="audio-upload-zone"><Music2 /><strong>{{ selected.audioUrl?'Аудио подключено':'Добавьте запись' }}</strong><small>MP3, M4A, OGG или WAV · до 50 МБ</small><label class="audio-upload-button"><Upload />{{ uploading?'Загрузка…':'Выбрать файл' }}<input type="file" accept="audio/mpeg,audio/mp4,audio/ogg,audio/wav" :disabled="uploading" @change="uploadAudioFile" /></label></div>
-          <label><Link /> Внешняя ссылка<input v-model="selected.audioUrl" placeholder="https://…/recording.mp3" @change="scheduleSave" /></label>
-          <label>Транскрипт<textarea v-model="selected.transcript" class="large-textarea" placeholder="English transcript…" @input="scheduleSave"></textarea></label>
+          <div class="audio-upload-zone"><Music2 /><strong>{{ selected.audioUrl?'Аудио подключено':'Добавьте запись' }}</strong><small>MP3, M4A, OGG или WAV · до 50 МБ</small><FileUpload mode="basic" choose-label="Выбрать аудио" accept="audio/mpeg,audio/mp4,audio/ogg,audio/wav" :max-file-size="50000000" custom-upload auto :disabled="uploading" @uploader="uploadAudioFile"/></div>
+          <label><Link /> Внешняя ссылка<InputText v-model="selected.audioUrl" placeholder="https://…/recording.mp3" fluid @change="scheduleSave" /></label>
+          <label>Транскрипт<Textarea v-model="selected.transcript" rows="8" auto-resize fluid placeholder="English transcript…" @update:model-value="scheduleSave"/></label>
         </template>
         <template v-if="selected.type==='pdf'">
-          <div class="audio-upload-zone"><FileText /><strong>{{ selected.fileUrl?'PDF подключён':'Добавьте PDF с теорией' }}</strong><small>PDF · до 100 МБ</small><label class="audio-upload-button"><Upload />{{ uploading?'Загрузка…':'Выбрать PDF' }}<input type="file" accept="application/pdf,.pdf" :disabled="uploading" @change="uploadPdfFile" /></label></div>
+          <div class="audio-upload-zone"><FileText /><strong>{{ selected.fileUrl?'PDF подключён':'Добавьте PDF с теорией' }}</strong><small>PDF · до 100 МБ</small><FileUpload mode="basic" choose-label="Выбрать PDF" accept="application/pdf,.pdf" :max-file-size="100000000" custom-upload auto :disabled="uploading" @uploader="uploadPdfFile"/></div>
           <LessonPdfViewer v-if="selected.fileUrl" :url="selected.fileUrl" :title="selected.title" :file-name="selected.fileName" :file-size="selected.fileSize" />
         </template>
         <template v-if="selected.type==='single_choice'">
-          <label>Варианты — каждый с новой строки<textarea :value="selected.options?.join('\n')" @input="updateOptions"></textarea></label>
-          <label>Правильный ответ<select v-model.number="selected.correctOption" @change="scheduleSave"><option v-for="(option,optionIndex) in selected.options" :key="optionIndex" :value="optionIndex">{{ String.fromCharCode(65+optionIndex) }}. {{ option }}</option></select></label>
-          <label>Объяснение<textarea v-model="selected.explanation" @input="scheduleSave"></textarea></label>
+          <label>Варианты — каждый с новой строки<Textarea :model-value="selected.options?.join('\n')" rows="6" fluid @update:model-value="updateOptions"/></label>
+          <label>Правильный ответ<Select v-model="selected.correctOption" :options="correctAnswerOptions" option-label="label" option-value="value" fluid @update:model-value="scheduleSave"/></label>
+          <label>Объяснение<Textarea v-model="selected.explanation" rows="4" auto-resize fluid @update:model-value="scheduleSave"/></label>
         </template>
-        <div class="inspector-row"><div><strong>Обязательный</strong><small>Нужен для завершения</small></div><UiSwitch v-model="selected.required" @update:model-value="scheduleSave" /></div>
-        <button class="inspector-delete" @click="remove"><Trash2 />Удалить блок</button>
+        <div class="inspector-row"><div><strong>Обязательный</strong><small>Нужен для завершения</small></div><ToggleSwitch v-model="selected.required" @update:model-value="scheduleSave" /></div>
+        <PrimeButton severity="danger" outlined fluid @click="remove"><Trash2 />Удалить блок</PrimeButton>
       </template>
     </aside>
 
     <AppModal v-if="showSections" title="Разделы урока" @close="showSections=false">
       <div class="lesson-section-settings"><p>Меняйте названия и порядок. Ненужные разделы можно выключить — материалы сохранятся.</p>
         <VueDraggable v-model="sectionDraft" item-key="id" handle=".section-drag-handle" :animation="160" class="lesson-section-list">
-          <article v-for="section in sectionDraft" :key="section.id"><button class="drag-handle section-drag-handle" aria-label="Изменить порядок"><GripVertical /></button><label><small>Название</small><input v-model="section.label" /></label><div><small>Доступен в уроке</small><UiSwitch v-model="section.visible" /></div></article>
+          <article v-for="section in sectionDraft" :key="section.id"><button class="drag-handle section-drag-handle" aria-label="Изменить порядок"><GripVertical /></button><label><small>Название</small><InputText v-model="section.label" fluid /></label><div><small>Доступен в уроке</small><ToggleSwitch v-model="section.visible" /></div></article>
         </VueDraggable>
-        <div class="form-actions"><UiButton variant="secondary" @click="showSections=false">Отмена</UiButton><UiButton :disabled="sectionSaving" @click="saveSections">{{ sectionSaving?'Сохраняем…':'Сохранить разделы' }}</UiButton></div>
+        <div class="form-actions"><PrimeButton severity="secondary" outlined @click="showSections=false">Отмена</PrimeButton><PrimeButton :disabled="sectionSaving" @click="saveSections">{{ sectionSaving?'Сохраняем…':'Сохранить разделы' }}</PrimeButton></div>
       </div>
     </AppModal>
 
     <AppModal v-if="showBlockPicker" title="Добавить блок" @close="showBlockPicker=false">
       <div class="block-picker">
         <div class="block-picker-target"><Plus /><span><strong>Место вставки</strong><small>{{ insertAfterIndex<0?'В начало урока':`После блока ${String(insertAfterIndex+1).padStart(2,'0')}` }}</small></span></div>
-        <label class="block-picker-search"><Search /><input v-model="addQuery" type="search" placeholder="Теория, Listening, тест…" autofocus /></label>
+        <label class="block-picker-search"><Search /><InputText v-model="addQuery" type="search" placeholder="Теория, Listening, тест…" autofocus /></label>
         <div class="block-picker-grid"><button v-for="item in pickerPalette" :key="item.type" @click="chooseBlock(item.type)"><span><component :is="item.icon" /></span><div><strong>{{ item.label }}</strong><small>{{ item.description }}</small></div><Plus /></button></div>
         <p v-if="!pickerPalette.length" class="palette-empty">Формат не найден</p>
       </div>

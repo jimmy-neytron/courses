@@ -169,7 +169,7 @@ async function saveSections(){if(!found.value)return;sectionSaving.value=true;ed
     <AppModal v-if="showSections" title="Разделы урока" @close="showSections=false">
       <div class="lesson-section-settings"><p>Меняйте названия и порядок. Ненужные разделы можно выключить — материалы сохранятся.</p>
         <VueDraggable v-model="sectionDraft" item-key="id" handle=".section-drag-handle" :animation="160" class="lesson-section-list">
-          <article v-for="section in sectionDraft" :key="section.id"><button class="drag-handle section-drag-handle" aria-label="Изменить порядок"><GripVertical /></button><label><small>Название</small><input v-model="section.label" /></label><div><small>Доступен ученику</small><UiSwitch v-model="section.visible" /></div></article>
+          <article v-for="section in sectionDraft" :key="section.id"><button class="drag-handle section-drag-handle" aria-label="Изменить порядок"><GripVertical /></button><label><small>Название</small><input v-model="section.label" /></label><div><small>Доступен в уроке</small><UiSwitch v-model="section.visible" /></div></article>
         </VueDraggable>
         <div class="form-actions"><UiButton variant="secondary" @click="showSections=false">Отмена</UiButton><UiButton :disabled="sectionSaving" @click="saveSections">{{ sectionSaving?'Сохраняем…':'Сохранить разделы' }}</UiButton></div>
       </div>

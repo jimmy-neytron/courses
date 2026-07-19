@@ -2,25 +2,24 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { VueDraggable } from 'vue-draggable-plus'
-import { ArrowLeft, BookOpen, Check, ChevronDown, Clock3, Eye, FileText, GripVertical, LayoutList, Plus, Settings2, Sparkles, Users, BarChart3, Save, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, BookOpen, Check, ChevronDown, Clock3, Eye, FileText, GripVertical, LayoutList, Plus, Settings2, Sparkles, Save, Trash2 } from 'lucide-vue-next'
 import DefaultLayout from '@/layouts/default.vue'
 import AppModal from '@/components/AppModal.vue'
 import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
 import UiButton from '@/components/ui/button/UiButton.vue'
-import CourseAnalyticsChart from '@/components/charts/CourseAnalyticsChart.vue'
 import { useCourseStore } from '@/stores/courses'
 import type { CourseModule } from '@/types/course'
 
 const route=useRoute();const router=useRouter();const store=useCourseStore()
 const course=computed(()=>store.findCourse(String(route.params.courseId)))
 const modules=computed<CourseModule[]>({get:()=>course.value?.modules??[],set:value=>{if(course.value)course.value.modules=value}})
-const tab=ref<'overview'|'curriculum'|'learners'|'analytics'|'settings'>('curriculum')
+const tab=ref<'overview'|'curriculum'|'settings'>('curriculum')
 const showModule=ref(false);const showLesson=ref(false);const moduleTitle=ref('');const lessonTitle=ref('');const lessonModule=ref('')
 const orderSaving=ref(false);const saved=ref(false);const actionError=ref('')
 const showDelete=ref(false);const deleting=ref(false);const deleteError=ref('')
 const totalLessons=computed(()=>modules.value.reduce((sum,module)=>sum+module.lessons.length,0))
 const totalMinutes=computed(()=>modules.value.reduce((sum,module)=>sum+module.lessons.reduce((value,lesson)=>value+lesson.duration,0),0))
-const tabs=[{id:'overview',label:'Обзор',icon:LayoutList},{id:'curriculum',label:'Программа',icon:BookOpen},{id:'learners',label:'Ученики',icon:Users},{id:'analytics',label:'Аналитика',icon:BarChart3},{id:'settings',label:'Настройки',icon:Settings2}] as const
+const tabs=[{id:'overview',label:'Обзор',icon:LayoutList},{id:'curriculum',label:'Программа',icon:BookOpen},{id:'settings',label:'Настройки',icon:Settings2}] as const
 async function persistOrder(){if(!course.value)return;orderSaving.value=true;actionError.value='';try{await store.persistCourseOrder(course.value.id);saved.value=true;setTimeout(()=>saved.value=false,1400)}catch(error){actionError.value=error instanceof Error?error.message:'Не удалось сохранить порядок'}finally{orderSaving.value=false}}
 async function createModule(){if(!course.value||!moduleTitle.value.trim())return;await store.addModule(course.value.id,moduleTitle.value.trim());moduleTitle.value='';showModule.value=false}
 function openLesson(moduleId:string){lessonModule.value=moduleId;showLesson.value=true}
@@ -28,4 +27,192 @@ async function createLesson(){if(!course.value||!lessonTitle.value.trim())return
 async function saveSettings(){if(!course.value)return;await store.saveCourse(course.value.id);saved.value=true;setTimeout(()=>saved.value=false,1400)}
 async function confirmDelete(){if(!course.value)return;deleting.value=true;deleteError.value='';try{await store.deleteCourse(course.value.id);showDelete.value=false;await router.push('/app/courses')}catch(error){deleteError.value=error instanceof Error?error.message:'Не удалось удалить курс'}finally{deleting.value=false}}</script>
 
-<template><DefaultLayout><template v-if="course"><div class="product-course"><div class="product-breadcrumb"><RouterLink to="/app/courses"><ArrowLeft/>Курсы</RouterLink><span>/</span><span>{{course.title}}</span></div><section class="product-course-hero"><div class="product-course-cover" :style="{background:course.cover}"><span>{{course.tag}}</span><i></i></div><div class="product-course-copy"><div class="product-kicker"><span :class="['product-status',course.status==='Черновик'&&'is-draft']">{{course.status}}</span><span>Обновлено {{course.updated}}</span></div><h1>{{course.title}}</h1><p>{{course.description}}</p><div class="product-course-meta"><span><BookOpen/>{{modules.length}} модулей</span><span><FileText/>{{totalLessons}} уроков</span><span><Clock3/>{{Math.round(totalMinutes/60)}} ч программы</span></div></div><div class="product-course-actions"><RouterLink :to="`/preview/courses/${course.id}`" class="product-button product-button--secondary"><Eye/>Предпросмотр</RouterLink><UiButton :disabled="course.status==='Опубликован'" @click="store.publishCourse(course.id)"><Sparkles/>{{course.status==='Опубликован'?'Опубликовано':'Опубликовать'}}</UiButton><UiButton variant="danger" @click="showDelete=true"><Trash2/>Удалить курс</UiButton></div></section><div v-if="actionError" class="product-alert is-error">{{actionError}}</div><nav class="product-tabs"><button v-for="item in tabs" :key="item.id" :class="{active:tab===item.id}" @click="tab=item.id"><component :is="item.icon"/>{{item.label}}</button></nav><section v-if="tab==='curriculum'" class="product-section"><div class="product-section-head"><div><span class="eyebrow">Course builder</span><h2>Структура курса</h2><p>Перетаскивайте модули и уроки за маркер слева. Порядок сохраняется автоматически.</p></div><div class="product-save-state"><span v-if="orderSaving">Сохраняем…</span><span v-else-if="saved" class="is-success"><Check/>Сохранено</span><UiButton variant="secondary" @click="showModule=true"><Plus/>Новый модуль</UiButton></div></div><VueDraggable v-model="modules" item-key="id" handle=".module-drag-handle" :animation="180" ghost-class="drag-ghost" :force-fallback="true" fallback-class="drag-fallback" chosen-class="drag-chosen" class="product-modules" @end="persistOrder"><article v-for="(module,moduleIndex) in modules" :key="module.id" class="product-module"><header><button class="drag-handle module-drag-handle" aria-label="Переместить модуль"><GripVertical/></button><span class="product-module-index">{{String(moduleIndex+1).padStart(2,'0')}}</span><button class="product-module-title" @click="module.open=!module.open"><span><strong>{{module.title}}</strong><small>{{module.lessons.length}} уроков · {{module.lessons.reduce((sum,lesson)=>sum+lesson.duration,0)}} минут</small></span><ChevronDown :class="{rotated:!module.open}"/></button></header><div v-show="module.open" class="product-lessons"><VueDraggable v-model="module.lessons" item-key="id" handle=".lesson-drag-handle" :group="{name:'course-lessons'}" :animation="180" ghost-class="drag-ghost" :force-fallback="true" fallback-class="drag-fallback" class="product-lessons-list" @end="persistOrder"><RouterLink v-for="(lesson,lessonIndex) in module.lessons" :key="lesson.id" :to="`/app/lessons/${lesson.id}/editor`" class="product-lesson"><span class="drag-handle lesson-drag-handle" aria-label="Переместить урок" @click.prevent><GripVertical/></span><span class="product-lesson-index">{{moduleIndex+1}}.{{lessonIndex+1}}</span><div><strong>{{lesson.title}}</strong><small><Clock3/>{{lesson.duration}} мин<span>·</span>{{lesson.blocks.length}} блоков</small></div><span :class="['product-status',lesson.status==='Черновик'&&'is-draft']">{{lesson.status}}</span></RouterLink></VueDraggable><button class="product-add-row" @click="openLesson(module.id)"><Plus/>Добавить урок в модуль</button></div></article></VueDraggable><button v-if="modules.length" class="product-add-module" @click="showModule=true"><Plus/><span><strong>Добавить следующий модуль</strong><small>Создайте новый этап программы</small></span></button><div v-else class="product-empty"><BookOpen/><h3>Начните с первого модуля</h3><p>Соберите программу из логичных этапов и добавьте уроки.</p><UiButton @click="showModule=true"><Plus/>Создать модуль</UiButton></div></section><section v-else-if="tab==='overview'" class="product-section product-overview"><article><span>О курсе</span><h2>{{course.title}}</h2><p>{{course.description}}</p></article><article><span>Структура</span><dl><div><dt>Модулей</dt><dd>{{modules.length}}</dd></div><div><dt>Уроков</dt><dd>{{totalLessons}}</dd></div><div><dt>Длительность</dt><dd>{{Math.round(totalMinutes/60)}} часов</dd></div><div><dt>Статус</dt><dd>{{course.status}}</dd></div></dl></article></section><section v-else-if="tab==='learners'" class="product-section"><div class="product-section-head"><div><span class="eyebrow">Audience</span><h2>Ученики курса</h2><p>Здесь отображаются реальные записи enrollment из Supabase.</p></div></div><div class="product-table"><div v-for="learner in store.learners.filter(item=>item.course===course?.title)" :key="learner.id" class="product-table-row"><span class="product-avatar">{{learner.name.split(' ').map(part=>part[0]).join('').slice(0,2)}}</span><div><strong>{{learner.name}}</strong><small>{{learner.email}}</small></div><span>{{learner.status}}</span><span>{{learner.progress}}%</span></div><div v-if="!store.learners.some(item=>item.course===course?.title)" class="product-empty compact"><Users/><h3>Пока нет учеников</h3><p>После записи на курс они появятся здесь.</p></div></div></section><section v-else-if="tab==='analytics'" class="product-section"><div class="product-section-head"><div><span class="eyebrow">Analytics</span><h2>Прогресс курса</h2><p>Визуализация построена на vue-chartjs.</p></div></div><CourseAnalyticsChart :courses="[course]"/></section><section v-else class="product-section product-settings"><div><span class="eyebrow">Course settings</span><h2>Основная информация</h2><p>Изменения сохраняются в Supabase.</p></div><form @submit.prevent="saveSettings"><label>Название<input v-model="course.title"/></label><label>Описание<textarea v-model="course.description"></textarea></label><div><UiButton type="submit"><Save/>Сохранить изменения</UiButton><span v-if="saved" class="is-success"><Check/>Сохранено</span></div></form></section></div><AppModal v-if="showModule" title="Новый модуль" @close="showModule=false"><form class="form" @submit.prevent="createModule"><label>Название модуля<input v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency"/></label><div class="form-actions"><UiButton variant="secondary" @click="showModule=false">Отмена</UiButton><UiButton type="submit">Добавить модуль</UiButton></div></form></AppModal><AppModal v-if="showLesson" title="Новый урок" @close="showLesson=false"><form class="form" @submit.prevent="createLesson"><label>Название урока<input v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills"/></label><div class="form-actions"><UiButton variant="secondary" @click="showLesson=false">Отмена</UiButton><UiButton type="submit">Создать и открыть</UiButton></div></form></AppModal><CourseDeleteDialog v-if="showDelete&&course" :course="course" :pending="deleting" :error="deleteError" @close="showDelete=false" @confirm="confirmDelete"/></template><section v-else class="product-empty full"><BookOpen/><h2>Курс не найден</h2><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section></DefaultLayout></template>
+<template>
+<DefaultLayout>
+<template v-if="course">
+<div class="product-course">
+<div class="product-breadcrumb">
+<RouterLink to="/app/courses">
+<ArrowLeft/>Курсы</RouterLink>
+<span>/</span>
+<span>{{course.title}}</span>
+</div>
+<section class="product-course-hero">
+<div class="product-course-cover" :style="{background:course.cover}">
+<span>{{course.tag}}</span>
+<i>
+</i>
+</div>
+<div class="product-course-copy">
+<div class="product-kicker">
+<span :class="['product-status',course.status==='Черновик'&&'is-draft']">{{course.status}}</span>
+<span>Обновлено {{course.updated}}</span>
+</div>
+<h1>{{course.title}}</h1>
+<p>{{course.description}}</p>
+<div class="product-course-meta">
+<span>
+<BookOpen/>{{modules.length}} модулей</span>
+<span>
+<FileText/>{{totalLessons}} уроков</span>
+<span>
+<Clock3/>{{Math.round(totalMinutes/60)}} ч программы</span>
+</div>
+</div>
+<div class="product-course-actions">
+<RouterLink :to="`/preview/courses/${course.id}`" class="product-button product-button--secondary">
+<Eye/>Предпросмотр</RouterLink>
+<UiButton :disabled="course.status==='Опубликован'" @click="store.publishCourse(course.id)">
+<Sparkles/>{{course.status==='Опубликован'?'Опубликовано':'Опубликовать'}}</UiButton>
+<UiButton variant="danger" @click="showDelete=true">
+<Trash2/>Удалить курс</UiButton>
+</div>
+</section>
+<div v-if="actionError" class="product-alert is-error">{{actionError}}</div>
+<nav class="product-tabs">
+<button v-for="item in tabs" :key="item.id" :class="{active:tab===item.id}" @click="tab=item.id">
+<component :is="item.icon"/>{{item.label}}</button>
+</nav>
+<section v-if="tab==='curriculum'" class="product-section">
+<div class="product-section-head">
+<div>
+<span class="eyebrow">Course builder</span>
+<h2>Структура курса</h2>
+<p>Перетаскивайте модули и уроки за маркер слева. Порядок сохраняется автоматически.</p>
+</div>
+<div class="product-save-state">
+<span v-if="orderSaving">Сохраняем…</span>
+<span v-else-if="saved" class="is-success">
+<Check/>Сохранено</span>
+<UiButton variant="secondary" @click="showModule=true">
+<Plus/>Новый модуль</UiButton>
+</div>
+</div>
+<VueDraggable v-model="modules" item-key="id" handle=".module-drag-handle" :animation="180" ghost-class="drag-ghost" :force-fallback="true" fallback-class="drag-fallback" chosen-class="drag-chosen" class="product-modules" @end="persistOrder">
+<article v-for="(module,moduleIndex) in modules" :key="module.id" class="product-module">
+<header>
+<button class="drag-handle module-drag-handle" aria-label="Переместить модуль">
+<GripVertical/>
+</button>
+<span class="product-module-index">{{String(moduleIndex+1).padStart(2,'0')}}</span>
+<button class="product-module-title" @click="module.open=!module.open">
+<span>
+<strong>{{module.title}}</strong>
+<small>{{module.lessons.length}} уроков · {{module.lessons.reduce((sum,lesson)=>sum+lesson.duration,0)}} минут</small>
+</span>
+<ChevronDown :class="{rotated:!module.open}"/>
+</button>
+</header>
+<div v-show="module.open" class="product-lessons">
+<VueDraggable v-model="module.lessons" item-key="id" handle=".lesson-drag-handle" :group="{name:'course-lessons'}" :animation="180" ghost-class="drag-ghost" :force-fallback="true" fallback-class="drag-fallback" class="product-lessons-list" @end="persistOrder">
+<RouterLink v-for="(lesson,lessonIndex) in module.lessons" :key="lesson.id" :to="`/app/lessons/${lesson.id}/editor`" class="product-lesson">
+<span class="drag-handle lesson-drag-handle" aria-label="Переместить урок" @click.prevent>
+<GripVertical/>
+</span>
+<span class="product-lesson-index">{{moduleIndex+1}}.{{lessonIndex+1}}</span>
+<div>
+<strong>{{lesson.title}}</strong>
+<small>
+<Clock3/>{{lesson.duration}} мин<span>·</span>{{lesson.blocks.length}} блоков</small>
+</div>
+<span :class="['product-status',lesson.status==='Черновик'&&'is-draft']">{{lesson.status}}</span>
+</RouterLink>
+</VueDraggable>
+<button class="product-add-row" @click="openLesson(module.id)">
+<Plus/>Добавить урок в модуль</button>
+</div>
+</article>
+</VueDraggable>
+<button v-if="modules.length" class="product-add-module" @click="showModule=true">
+<Plus/>
+<span>
+<strong>Добавить следующий модуль</strong>
+<small>Создайте новый этап программы</small>
+</span>
+</button>
+<div v-else class="product-empty">
+<BookOpen/>
+<h3>Начните с первого модуля</h3>
+<p>Соберите программу из логичных этапов и добавьте уроки.</p>
+<UiButton @click="showModule=true">
+<Plus/>Создать модуль</UiButton>
+</div>
+</section>
+<section v-else-if="tab==='overview'" class="product-section product-overview">
+<article>
+<span>О курсе</span>
+<h2>{{course.title}}</h2>
+<p>{{course.description}}</p>
+</article>
+<article>
+<span>Структура</span>
+<dl>
+<div>
+<dt>Модулей</dt>
+<dd>{{modules.length}}</dd>
+</div>
+<div>
+<dt>Уроков</dt>
+<dd>{{totalLessons}}</dd>
+</div>
+<div>
+<dt>Длительность</dt>
+<dd>{{Math.round(totalMinutes/60)}} часов</dd>
+</div>
+<div>
+<dt>Статус</dt>
+<dd>{{course.status}}</dd>
+</div>
+</dl>
+</article>
+</section>
+<section v-else class="product-section product-settings">
+<div>
+<span class="eyebrow">Course settings</span>
+<h2>Основная информация</h2>
+<p>Изменения сохраняются в Supabase.</p>
+</div>
+<form @submit.prevent="saveSettings">
+<label>Название<input v-model="course.title"/>
+</label>
+<label>Описание<textarea v-model="course.description">
+</textarea>
+</label>
+<div>
+<UiButton type="submit">
+<Save/>Сохранить изменения</UiButton>
+<span v-if="saved" class="is-success">
+<Check/>Сохранено</span>
+</div>
+</form>
+</section>
+</div>
+<AppModal v-if="showModule" title="Новый модуль" @close="showModule=false">
+<form class="form" @submit.prevent="createModule">
+<label>Название модуля<input v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency"/>
+</label>
+<div class="form-actions">
+<UiButton variant="secondary" @click="showModule=false">Отмена</UiButton>
+<UiButton type="submit">Добавить модуль</UiButton>
+</div>
+</form>
+</AppModal>
+<AppModal v-if="showLesson" title="Новый урок" @close="showLesson=false">
+<form class="form" @submit.prevent="createLesson">
+<label>Название урока<input v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills"/>
+</label>
+<div class="form-actions">
+<UiButton variant="secondary" @click="showLesson=false">Отмена</UiButton>
+<UiButton type="submit">Создать и открыть</UiButton>
+</div>
+</form>
+</AppModal>
+<CourseDeleteDialog v-if="showDelete&&course" :course="course" :pending="deleting" :error="deleteError" @close="showDelete=false" @confirm="confirmDelete"/>
+</template>
+<section v-else class="product-empty full">
+<BookOpen/>
+<h2>Курс не найден</h2>
+<RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink>
+</section>
+</DefaultLayout>
+</template>

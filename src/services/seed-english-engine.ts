@@ -77,8 +77,6 @@ export function buildEnglishEngineDemoCourse(): Course {
     cover: 'linear-gradient(135deg,#142d39,#3ac3a6)',
     tag: '33',
     status: 'Опубликован',
-    students: 0,
-    progress: 0,
     updated: 'Сегодня',
     modules: englishEnginePhases.map((phase, moduleIndex) => ({
       id: `engine-phase-${moduleIndex + 1}`,

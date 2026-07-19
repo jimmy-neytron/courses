@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-import type { BlockType, Course, Learner, Lesson, LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
+import type { BlockType, Course, Lesson, LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
 import { isSupabaseConfigured, requireSupabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { slugify } from '@/utils/slugify'
@@ -20,7 +20,6 @@ const COURSES_CACHE_PREFIX = 'course-platform-cache-v1-'
 export const useCourseStore = defineStore('courses', () => {
   const saved = localStorage.getItem('cursor-courses-v3')
   const courses = ref<Course[]>(isSupabaseConfigured ? [] : (saved ? JSON.parse(saved) : demoCourses))
-  const learners = ref<Learner[]>([])
   const loading = ref(false)
   const loadError = ref('')
   let hydratedOrganizationId = ''
@@ -79,7 +78,7 @@ export const useCourseStore = defineStore('courses', () => {
       id:String(module.id), title:String(module.title), open:true,
       lessons:((module.lessons??[]) as Record<string,unknown>[]).sort((left,right) => Number(left.position)-Number(right.position)).map(mapLesson),
     }))
-    return { id:String(row.id), title:String(row.title), description:String(row.description??''), cover:`linear-gradient(135deg,${String(row.accent_color??'#3AC3A6')},#142d39)`, tag:String(row.target_level??'КУРС'), status:row.status === 'published' ? 'Опубликован' : 'Черновик', students:0, progress:0, updated:new Date(String(row.updated_at)).toLocaleDateString('ru-RU'), modules }
+    return { id:String(row.id), title:String(row.title), description:String(row.description??''), cover:`linear-gradient(135deg,${String(row.accent_color??'#3AC3A6')},#142d39)`, tag:String(row.target_level??'КУРС'), status:row.status === 'published' ? 'Опубликован' : 'Черновик', updated:new Date(String(row.updated_at)).toLocaleDateString('ru-RU'), modules }
   }
   async function resolveAssetUrls() {
     await Promise.all(courses.value.flatMap((course) => course.modules.flatMap((module) => module.lessons.flatMap((lesson) => lesson.blocks.map(async (block) => {
@@ -140,7 +139,7 @@ export const useCourseStore = defineStore('courses', () => {
     return bootstrapPromise
   }
   async function createCourse(title:string, description:string) {
-    if (!isSupabaseConfigured) { const id=`course-${Date.now()}`;courses.value.unshift({id,title,description,cover:'linear-gradient(135deg,#176452,#3ac3a6)',tag:'EN',status:'Черновик',students:0,progress:0,updated:'Только что',modules:[]});return id }
+    if (!isSupabaseConfigured) { const id=`course-${Date.now()}`;courses.value.unshift({id,title,description,cover:'linear-gradient(135deg,#176452,#3ac3a6)',tag:'EN',status:'Черновик',updated:'Только что',modules:[]});return id }
     const auth=useAuthStore();if(!auth.organization||!auth.user)throw new Error('Организация пользователя не найдена')
     const { data,error }=await requireSupabase().from('courses').insert({organization_id:auth.organization.id,owner_id:auth.user.id,title,description,slug:slugify(title,'course'),language_code:'en',source_level:'A0',target_level:'B2'}).select('id').single();if(error)throw error;await hydrate(true);return String(data.id)
   }
@@ -188,5 +187,5 @@ export const useCourseStore = defineStore('courses', () => {
   async function persistBlockOrder(lessonId:string){const found=findLesson(lessonId);if(!found||!isSupabaseConfigured)return;const results=await Promise.all(found.lesson.blocks.map((item,position)=>requireSupabase().from('lesson_blocks').update({position}).eq('id',item.id)));const error=results.find((result)=>result.error)?.error;if(error)throw error}
   function resetDemo(){if(!isSupabaseConfigured){courses.value=structuredClone(demoCourses);localStorage.removeItem('cursor-courses-v3')}}
 
-  return { courses,learners,loading,loadError,totalLessons,findCourse,findLesson,hydrate,createCourse,addModule,addLesson,addBlock,saveLesson,saveBlock,saveLessonSections,uploadAudio,uploadPdf,removeBlock,saveCourse,deleteCourse,publishCourse,persistCourseOrder,persistBlockOrder,resetDemo }
+  return { courses,loading,loadError,totalLessons,findCourse,findLesson,hydrate,createCourse,addModule,addLesson,addBlock,saveLesson,saveBlock,saveLessonSections,uploadAudio,uploadPdf,removeBlock,saveCourse,deleteCourse,publishCourse,persistCourseOrder,persistBlockOrder,resetDemo }
 })

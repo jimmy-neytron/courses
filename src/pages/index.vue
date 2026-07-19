@@ -1,1 +1,31 @@
-<script setup lang="ts">import{computed}from'vue';import{ArrowRight,BookOpen,FileText,Plus,Sparkles,Users}from'lucide-vue-next';import DefaultLayout from '@/layouts/default.vue';import CourseCard from '@/components/CourseCard.vue';import CourseAnalyticsChart from '@/components/charts/CourseAnalyticsChart.vue';import{useCourses}from'@/composables/useCourses';const{courses,activities,store}=useCourses();const published=computed(()=>store.courses.filter(course=>course.status==='Опубликован').length);const modules=computed(()=>store.courses.reduce((sum,course)=>sum+course.modules.length,0))</script><template><DefaultLayout><div class="product-dashboard"><section class="dashboard-welcome"><div><span class="eyebrow">Course workspace</span><h1>Добрый день!</h1><p>Продолжайте создавать сильные учебные продукты.</p></div><RouterLink to="/app/courses" class="product-button"><Plus/>Создать курс</RouterLink></section><section class="dashboard-metrics"><article><span><BookOpen/></span><div><strong>{{store.courses.length}}</strong><small>Всего курсов</small></div></article><article><span><Sparkles/></span><div><strong>{{published}}</strong><small>Опубликовано</small></div></article><article><span><FileText/></span><div><strong>{{store.totalLessons}}</strong><small>Уроков в программах</small></div></article><article><span><Users/></span><div><strong>{{store.learners.length}}</strong><small>Учеников</small></div></article></section><div class="dashboard-grid"><section class="dashboard-panel dashboard-chart"><div class="dashboard-panel-head"><div><span class="eyebrow">vue-chartjs</span><h2>Прогресс по курсам</h2></div><RouterLink to="/app/analytics">Подробнее <ArrowRight/></RouterLink></div><CourseAnalyticsChart :courses="store.courses"/></section><section class="dashboard-panel dashboard-structure"><div class="dashboard-panel-head"><div><span class="eyebrow">Structure</span><h2>Контент</h2></div></div><dl><div><dt>Модулей</dt><dd>{{modules}}</dd></div><div><dt>Уроков</dt><dd>{{store.totalLessons}}</dd></div><div><dt>Курсов</dt><dd>{{store.courses.length}}</dd></div></dl><RouterLink to="/app/courses" class="product-button product-button--secondary">Открыть программы <ArrowRight/></RouterLink></section></div><div class="dashboard-section-head"><div><span class="eyebrow">Recent work</span><h2>Последние курсы</h2></div><RouterLink to="/app/courses">Все курсы <ArrowRight/></RouterLink></div><section class="course-grid"><CourseCard v-for="course in courses.slice(0,3)" :key="course.id" :course="course"/></section><section v-if="activities.length" class="dashboard-panel dashboard-activity"><div class="dashboard-panel-head"><h2>Последняя активность</h2></div><div v-for="item in activities" :key="item.name" class="activity"><span :style="{background:item.color}">{{item.initials}}</span><p><b>{{item.name}}</b> {{item.action}}<small>{{item.time}} назад</small></p></div></section></div></DefaultLayout></template>
+<script setup lang="ts">
+import { computed } from 'vue'
+import { ArrowRight, BookOpen, Boxes, FileText, Plus, Sparkles } from 'lucide-vue-next'
+import DefaultLayout from '@/layouts/default.vue'
+import CourseCard from '@/components/CourseCard.vue'
+import { useCourseStore } from '@/stores/courses'
+
+const store=useCourseStore()
+const published=computed(()=>store.courses.filter(course=>course.status==='Опубликован').length)
+const modules=computed(()=>store.courses.reduce((sum,course)=>sum+course.modules.length,0))
+</script>
+
+<template>
+  <DefaultLayout>
+    <div class="product-dashboard">
+      <section class="dashboard-welcome">
+        <div><span class="eyebrow">Course workspace</span><h1>Добрый день!</h1><p>Продолжайте создавать сильные учебные продукты.</p></div>
+        <RouterLink to="/app/courses" class="product-button"><Plus/>Создать курс</RouterLink>
+      </section>
+      <section class="dashboard-metrics">
+        <article><span><BookOpen/></span><div><strong>{{store.courses.length}}</strong><small>Всего курсов</small></div></article>
+        <article><span><Sparkles/></span><div><strong>{{published}}</strong><small>Опубликовано</small></div></article>
+        <article><span><Boxes/></span><div><strong>{{modules}}</strong><small>Модулей</small></div></article>
+        <article><span><FileText/></span><div><strong>{{store.totalLessons}}</strong><small>Уроков в программах</small></div></article>
+      </section>
+      <div class="dashboard-section-head"><div><span class="eyebrow">Recent work</span><h2>Последние курсы</h2></div><RouterLink to="/app/courses">Все курсы <ArrowRight/></RouterLink></div>
+      <section v-if="store.courses.length" class="course-grid"><CourseCard v-for="course in store.courses.slice(0,3)" :key="course.id" :course="course"/></section>
+      <section v-else class="product-empty"><BookOpen/><h3>Создайте первый курс</h3><p>Курсы появятся здесь после создания.</p><RouterLink to="/app/courses" class="product-button"><Plus/>Создать курс</RouterLink></section>
+    </div>
+  </DefaultLayout>
+</template>

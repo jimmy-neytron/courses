@@ -1,11 +1,22 @@
-# Dependencies
+# Dependencies and package-manager caches
 node_modules/
+.pnpm-store/
+.npm/
+.yarn/
 
-# Build output
+# Build output and tool caches
 dist/
 dist-ssr/
-coverage/
+.vite/
+.cache/
 *.tsbuildinfo
+*.timestamp-*
+
+# Test and coverage output
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
 
 # Logs
 *.log
@@ -14,18 +25,32 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Local env
+# Local environment and secrets
 .env
 .env.*
 !.env.example
 
-# Editor and OS files
+# Supabase local runtime
+supabase/.temp/
+supabase/.branches/
+
+# Local agent/tool state
+.agents/
+.codex/
+.codex-kit/
+
+# Editors
 .idea/
 .vscode/
+.fleet/
+*.iml
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
 .DS_Store
 Thumbs.db
+Desktop.ini

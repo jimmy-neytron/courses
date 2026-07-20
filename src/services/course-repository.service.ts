@@ -185,6 +185,12 @@ export async function deleteBlockRecord(blockId: string): Promise<void> {
   if (error) throw error
 }
 
+export async function deleteLessonRecords(lessonIds: string[]): Promise<void> {
+  if (!lessonIds.length) return
+  const { error } = await requireSupabase().from('lessons').delete().in('id', lessonIds)
+  if (error) throw error
+}
+
 export async function updateCourseRecord(course: Course): Promise<void> {
   const { error } = await requireSupabase().from('courses').update({
     title: course.title,

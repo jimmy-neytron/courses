@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, BookOpen } from 'lucide-vue-next'
+import { AlertTriangle, ArrowLeft, BookOpen, Trash2 } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import DefaultLayout from '@/layouts/default.vue'
@@ -24,6 +24,7 @@ const {
   moduleDialogOpen,
   lessonDialogOpen,
   deleteDialogOpen,
+  deleteLessonsDialogOpen,
   inviteDialogOpen,
   inviteRefreshing,
   inviteError,
@@ -32,6 +33,9 @@ const {
   orderSaving,
   duplicatingId,
   deleting,
+  deletingLessons,
+  selectionMode,
+  selectedLessonIds,
   saved,
   actionError,
   deleteError,
@@ -41,6 +45,11 @@ const {
   createLesson,
   duplicateLesson,
   duplicateModule,
+  toggleSelectionMode,
+  toggleLessonSelection,
+  toggleModuleLessons,
+  requestDeleteSelectedLessons,
+  deleteSelectedLessons,
   saveSettings,
   publishCourse,
   deleteCourse,
@@ -56,7 +65,7 @@ const {
         <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @publish="publishCourse" @delete="deleteDialogOpen = true" @invite="inviteDialogOpen = true" />
         <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
         <CourseTabs v-if="canManage" v-model="tab" />
-        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" />
+        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" :selection-mode="selectionMode" :selected-lesson-ids="selectedLessonIds" :deleting-lessons="deletingLessons" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" @toggle-selection-mode="toggleSelectionMode" @toggle-lesson="toggleLessonSelection" @toggle-module-lessons="toggleModuleLessons" @delete-selected="requestDeleteSelectedLessons" />
         <CourseOverview v-else-if="!canManage || tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
         <CourseSettingsForm v-else-if="canManage" :course="course" :saved="saved" @save="saveSettings" />
       </div>
@@ -73,6 +82,13 @@ const {
           <FormField label="Название урока"><UiInput v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid /></FormField>
           <div class="form-actions"><UiButton type="button" severity="secondary" outlined @click="lessonDialogOpen = false">Отмена</UiButton><UiButton type="submit">Создать и открыть</UiButton></div>
         </form>
+      </AppModal>
+
+      <AppModal v-if="deleteLessonsDialogOpen" title="Удалить выбранные уроки" @close="deletingLessons || (deleteLessonsDialogOpen = false)">
+        <div class="bulk-lesson-delete">
+          <div class="bulk-lesson-delete-warning"><AlertTriangle /><div><strong>Удалить уроки: {{ selectedLessonIds.length }}?</strong><p>Уроки и все их блоки будут удалены без возможности восстановления.</p></div></div>
+          <div class="form-actions"><UiButton severity="secondary" outlined :disabled="deletingLessons" @click="deleteLessonsDialogOpen = false">Отмена</UiButton><UiButton severity="danger" :loading="deletingLessons" @click="deleteSelectedLessons"><Trash2 />Удалить</UiButton></div>
+        </div>
       </AppModal>
 
       <CourseDeleteDialog v-if="deleteDialogOpen" :course="course" :pending="deleting" :error="deleteError" @close="deleteDialogOpen = false" @confirm="deleteCourse" />

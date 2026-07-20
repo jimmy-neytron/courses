@@ -23,6 +23,7 @@ import {
   createModuleRecord,
   deleteBlockRecord,
   deleteCourseRecord,
+  deleteLessonRecords,
   listCourses,
   publishCourseRecord,
   saveBlockOrder,
@@ -306,59 +307,90 @@ export const useCourseStore = defineStore('courses', () => {
     const course = findCourse(courseId)
     const module = course?.modules.find((item) => item.id === moduleId)
     const lessonIndex = module?.lessons.findIndex((item) => item.id === lessonId) ?? -1
-    const source = lessonIndex >= 0 ? module?.lessons[lessonIndex] : undefined
-    if (!course || !module || !source || course.accessRole !== 'creator') return
+    const sourceLesson = lessonIndex >= 0 ? module?.lessons[lessonIndex] : undefined
+    if (!course || !module || !sourceLesson || course.accessRole !== 'creator') return
 
-    const title = duplicateTitle(source.title)
-    if (!isSupabaseConfigured) {
-      const copy = duplicateLocalLesson(source, title)
-      module.lessons.splice(lessonIndex + 1, 0, copy)
-      return copy.id
-    }
+    const title = duplicateTitle(sourceLesson.title)
+    const optimisticCopy = duplicateLocalLesson(sourceLesson, title)
+    module.lessons.splice(lessonIndex + 1, 0, optimisticCopy)
+    if (!isSupabaseConfigured) return optimisticCopy.id
 
-    const id = await duplicateLessonRecords(courseId, moduleId, source, module.lessons.length, title)
-    await hydrate(true)
-    const refreshedCourse = findCourse(courseId)
-    const refreshedModule = refreshedCourse?.modules.find((item) => item.id === moduleId)
-    const copyIndex = refreshedModule?.lessons.findIndex((item) => item.id === id) ?? -1
-    if (refreshedCourse && refreshedModule && copyIndex >= 0) {
-      const [copy] = refreshedModule.lessons.splice(copyIndex, 1)
-      if (copy) refreshedModule.lessons.splice(lessonIndex + 1, 0, copy)
-      await saveCourseOrder(refreshedCourse)
+    const remotePosition = module.lessons.length - 1
+    try {
+      const id = await duplicateLessonRecords(courseId, moduleId, sourceLesson, remotePosition, title)
+      optimisticCopy.id = id
+      await hydrate(true)
+      const refreshedCourse = findCourse(courseId)
+      const refreshedModule = refreshedCourse?.modules.find((item) => item.id === moduleId)
+      const copyIndex = refreshedModule?.lessons.findIndex((item) => item.id === id) ?? -1
+      if (refreshedCourse && refreshedModule && copyIndex >= 0) {
+        const [copy] = refreshedModule.lessons.splice(copyIndex, 1)
+        if (copy) refreshedModule.lessons.splice(lessonIndex + 1, 0, copy)
+        await saveCourseOrder(refreshedCourse)
+      }
+      return id
+    } catch (error) {
+      const currentModule = findCourse(courseId)?.modules.find((item) => item.id === moduleId)
+      if (currentModule) currentModule.lessons = currentModule.lessons.filter((item) => item !== optimisticCopy)
+      throw error
     }
-    return id
   }
 
   async function duplicateModule(courseId: string, moduleId: string): Promise<string | undefined> {
     const course = findCourse(courseId)
     const moduleIndex = course?.modules.findIndex((item) => item.id === moduleId) ?? -1
-    const source = moduleIndex >= 0 ? course?.modules[moduleIndex] : undefined
-    if (!course || !source || course.accessRole !== 'creator') return
+    const sourceModule = moduleIndex >= 0 ? course?.modules[moduleIndex] : undefined
+    if (!course || !sourceModule || course.accessRole !== 'creator') return
 
-    if (!isSupabaseConfigured) {
-      const copy: CourseModule = {
-        id: localId('module'),
-        title: duplicateTitle(source.title),
-        open: true,
-        lessons: source.lessons.map((lesson) => duplicateLocalLesson(lesson)),
+    const optimisticCopy: CourseModule = {
+      id: localId('module'),
+      title: duplicateTitle(sourceModule.title),
+      open: true,
+      lessons: sourceModule.lessons.map((lesson) => duplicateLocalLesson(lesson)),
+    }
+    course.modules.splice(moduleIndex + 1, 0, optimisticCopy)
+    if (!isSupabaseConfigured) return optimisticCopy.id
+
+    try {
+      const copiedModuleId = await createModuleRecord(courseId, optimisticCopy.title, course.modules.length - 1)
+      optimisticCopy.id = copiedModuleId
+      for (const [index, lesson] of sourceModule.lessons.entries()) {
+        await duplicateLessonRecords(courseId, copiedModuleId, lesson, index)
       }
-      course.modules.splice(moduleIndex + 1, 0, copy)
-      return copy.id
+      await hydrate(true)
+      const refreshedCourse = findCourse(courseId)
+      const copyIndex = refreshedCourse?.modules.findIndex((item) => item.id === copiedModuleId) ?? -1
+      if (refreshedCourse && copyIndex >= 0) {
+        const [copy] = refreshedCourse.modules.splice(copyIndex, 1)
+        if (copy) refreshedCourse.modules.splice(moduleIndex + 1, 0, copy)
+        await saveCourseOrder(refreshedCourse)
+      }
+      return copiedModuleId
+    } catch (error) {
+      const currentCourse = findCourse(courseId)
+      if (currentCourse) currentCourse.modules = currentCourse.modules.filter((item) => item !== optimisticCopy)
+      throw error
+    }
+  }
+
+  async function removeLessons(courseId: string, lessonIds: string[]): Promise<void> {
+    const course = findCourse(courseId)
+    if (!course || course.accessRole !== 'creator' || !lessonIds.length) return
+
+    const selected = new Set(lessonIds)
+    const lessons = course.modules.flatMap((module) => module.lessons.filter((lesson) => selected.has(lesson.id)))
+    if (!lessons.length) return
+
+    if (isSupabaseConfigured) {
+      await deleteLessonAssets(lessons.flatMap((lesson) => lesson.blocks.flatMap((block) => [block.audioPath, block.filePath])))
+      await deleteLessonRecords(lessons.map((lesson) => lesson.id))
+    } else {
+      releaseLessonObjectUrls(lessons.flatMap((lesson) => lesson.blocks.flatMap((block) => [block.audioUrl, block.fileUrl])))
     }
 
-    const copiedModuleId = await createModuleRecord(courseId, duplicateTitle(source.title), course.modules.length)
-    for (const [index, lesson] of source.lessons.entries()) {
-      await duplicateLessonRecords(courseId, copiedModuleId, lesson, index)
+    for (const module of course.modules) {
+      module.lessons = module.lessons.filter((lesson) => !selected.has(lesson.id))
     }
-    await hydrate(true)
-    const refreshedCourse = findCourse(courseId)
-    const copyIndex = refreshedCourse?.modules.findIndex((item) => item.id === copiedModuleId) ?? -1
-    if (refreshedCourse && copyIndex >= 0) {
-      const [copy] = refreshedCourse.modules.splice(copyIndex, 1)
-      if (copy) refreshedCourse.modules.splice(moduleIndex + 1, 0, copy)
-      await saveCourseOrder(refreshedCourse)
-    }
-    return copiedModuleId
   }
 
   async function addBlock(lessonId: string, type: BlockType): Promise<void> {
@@ -505,6 +537,7 @@ export const useCourseStore = defineStore('courses', () => {
     addLesson,
     duplicateLesson,
     duplicateModule,
+    removeLessons,
     addBlock,
     saveLesson,
     saveBlock,

@@ -6,8 +6,7 @@
     "scripts": {
         "dev": "vite",
         "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
-        "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
-        "audit:course": "node scripts/audit-english-course.mjs"
+        "typecheck": "vue-tsc --noEmit -p tsconfig.app.json"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.110.7",

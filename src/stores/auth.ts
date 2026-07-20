@@ -19,6 +19,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const organization = ref<OrganizationContext | null>(null)
   const loading = ref(true)
+  const initializationError = ref('')
+  let initialized = false
   const isAuthenticated = computed(() => Boolean(session.value))
 
   async function loadOrganization(): Promise<void> {
@@ -42,23 +44,46 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initialize(): Promise<void> {
+    if (initialized) return
     if (!supabase) {
+      initialized = true
       loading.value = false
       return
     }
 
-    const { data } = await supabase.auth.getSession()
-    session.value = data.session
-    user.value = data.session?.user ?? null
-    if (user.value) await loadOrganization()
+    initializationError.value = ''
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) throw error
 
-    supabase.auth.onAuthStateChange((_event, nextSession) => {
-      session.value = nextSession
-      user.value = nextSession?.user ?? null
-      if (nextSession) setTimeout(() => void loadOrganization(), 0)
-      else organization.value = null
-    })
-    loading.value = false
+      session.value = data.session
+      user.value = data.session?.user ?? null
+
+      supabase.auth.onAuthStateChange((_event, nextSession) => {
+        session.value = nextSession
+        user.value = nextSession?.user ?? null
+        if (nextSession) setTimeout(() => void loadOrganization().catch(() => undefined), 0)
+        else organization.value = null
+      })
+
+      if (user.value) {
+        try {
+          await loadOrganization()
+        } catch (error) {
+          initializationError.value = error instanceof Error
+            ? error.message
+            : 'Не удалось загрузить организацию пользователя'
+        }
+      }
+    } catch (error) {
+      session.value = null
+      user.value = null
+      organization.value = null
+      initializationError.value = error instanceof Error ? error.message : 'Не удалось инициализировать авторизацию'
+    } finally {
+      initialized = true
+      loading.value = false
+    }
   }
 
   async function signIn(email: string, password: string): Promise<void> {
@@ -106,6 +131,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     organization,
     loading,
+    initializationError,
     isConfigured: isSupabaseConfigured,
     isAuthenticated,
     initialize,

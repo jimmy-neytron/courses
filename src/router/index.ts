@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isSupabaseConfigured, supabase } from '@/services/supabase'
+import { useAuthStore } from '@/stores/auth'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -37,12 +37,13 @@ export const router = createRouter({
   ],
 })
 
-router.beforeEach(async (route) => {
-  if (!isSupabaseConfigured) return true
+router.beforeEach((route) => {
+  const auth = useAuthStore()
+  if (!auth.isConfigured) return true
 
-  const { data } = await supabase!.auth.getSession()
-  const signedIn = Boolean(data.session)
-  if (route.meta.auth && !signedIn) return { path: '/auth', query: { redirect: route.fullPath } }
-  if (route.meta.guest && signedIn) return '/app'
+  if (route.meta.auth && !auth.isAuthenticated) {
+    return { path: '/auth', query: { redirect: route.fullPath } }
+  }
+  if (route.meta.guest && auth.isAuthenticated) return '/app'
   return true
 })

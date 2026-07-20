@@ -2,6 +2,23 @@ export type CourseStatus = 'Опубликован' | 'Черновик'
 
 export type CourseAccessRole = 'creator' | 'learner'
 
+export type CourseKind = 'language' | 'general'
+
+export type CourseTemplateId = 'blank-language' | 'blank-general'
+
+export interface CourseCreateInput {
+  templateId: CourseTemplateId
+  kind: CourseKind
+  title: string
+  description: string
+  languageCode?: string
+  sourceLevel?: string
+  targetLevel?: string
+  durationWeeks?: number
+  lessonsPerWeek?: number
+  defaultLessonDuration: number
+}
+
 export interface CourseCreator {
   id: string
   name: string
@@ -33,15 +50,7 @@ export type BlockType =
   | 'translation'
   | 'single_choice'
 
-export type LessonSectionId =
-  | 'theory'
-  | 'conversation'
-  | 'listening'
-  | 'cards'
-  | 'errors'
-  | 'translation'
-  | 'practice'
-  | 'test'
+export type LessonSectionId = string
 
 export interface LessonSectionConfig {
   id: LessonSectionId
@@ -68,6 +77,7 @@ export interface LessonBlock {
   title: string
   content: string
   required: boolean
+  schemaVersion?: number
   sectionId?: LessonSectionId
   options?: string[]
   correctOption?: number
@@ -113,6 +123,11 @@ export interface Course {
   accessRole: CourseAccessRole
   creator: CourseCreator
   joinCode?: string
+  kind: CourseKind
+  languageCode?: string
+  sourceLevel?: string
+  targetLevel?: string
+  defaultLessonDuration: number
   learningPlan?: CourseLearningPlan
   title: string
   description: string

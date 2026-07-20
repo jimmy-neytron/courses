@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { CheckCircle2, Languages, Sparkles } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
-import Textarea from 'primevue/textarea'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 
 const props = defineProps<{ source?: string; target?: string; questions?: string[] }>()
 const emit = defineEmits<{ complete: [] }>()
@@ -23,10 +23,10 @@ function check() {
       <div><small>Language Engine</small><h3>Перевод смысловыми группами</h3><p>Сохраняйте смысл и естественный порядок слов.</p></div>
     </header>
     <blockquote>{{ props.source }}</blockquote>
-    <Textarea v-model="answer" rows="7" auto-resize fluid placeholder="Ваш перевод на английский…" />
+    <UiTextarea v-model="answer" rows="7" auto-resize fluid placeholder="Ваш перевод на английский…" />
     <div class="engine-actions">
       <span>Сначала переведите без словаря</span>
-      <PrimeButton :disabled="!canCheck" @click="check"><Sparkles />Сравнить с эталоном</PrimeButton>
+      <UiButton :disabled="!canCheck" @click="check"><Sparkles />Сравнить с эталоном</UiButton>
     </div>
     <div v-if="revealed" class="engine-feedback"><CheckCircle2 /><div><b>Естественный вариант</b><p>{{ props.target }}</p></div></div>
     <div v-if="revealed && props.questions?.length" class="translation-questions">

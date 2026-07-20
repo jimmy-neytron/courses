@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { GripVertical, MessageSquare, Plus } from 'lucide-vue-next'
-import InputText from 'primevue/inputtext'
+import UiInput from '@/components/ui/UiInput.vue'
 import LessonAudioPlayer from '@/components/lesson/LessonAudioPlayer.vue'
 import LessonPdfViewer from '@/components/lesson/LessonPdfViewer.vue'
 import LessonBlockContextMenu from '@/components/lesson/editor/LessonBlockContextMenu.vue'
@@ -23,9 +23,10 @@ const emit = defineEmits<{
 
 const selected = computed(() => blocks.value.find((item) => item.id === selectedId.value) ?? blocks.value[0])
 const selectedIndex = computed(() => selected.value ? blocks.value.findIndex((item) => item.id === selected.value?.id) : -1)
+const courseKind = computed(() => props.sections.some((section) => section.id === 'content') ? 'general' : 'language')
 
 function sectionLabel(block: LessonBlock): string {
-  const sectionId = resolveLessonBlockSection(block)
+  const sectionId = resolveLessonBlockSection(block, props.sections, courseKind.value)
   return props.sections.find((section) => section.id === sectionId)?.label ?? sectionId
 }
 </script>
@@ -36,7 +37,7 @@ function sectionLabel(block: LessonBlock): string {
     <div class="editor-document-head">
       <div>
         <span>Урок · {{ lesson.duration }} минут · {{ blocks.filter((block) => block.type === 'single_choice').length }} вопросов</span>
-        <InputText v-model="lesson.title" aria-label="Название урока" :spellcheck="false" @update:model-value="emit('change')" />
+        <UiInput v-model="lesson.title" aria-label="Название урока" :spellcheck="false" @update:model-value="emit('change')" />
         <p>Выберите блок для редактирования справа. Перетаскивайте блоки за маркер слева.</p>
       </div>
       <button class="editor-document-add" @click="emit('addAt', selectedIndex)"><Plus />Добавить блок</button>
@@ -59,7 +60,7 @@ function sectionLabel(block: LessonBlock): string {
         :block-label="lessonBlockLabels[item.type]"
         :block-number="index + 1"
         :sections="sections"
-        :active-section-id="resolveLessonBlockSection(item)"
+        :active-section-id="resolveLessonBlockSection(item, props.sections, courseKind)"
         @assign="sectionId => emit('assign', item, sectionId)"
         @add-below="emit('addAt', index)"
         @remove="emit('remove', item)"
@@ -76,7 +77,7 @@ function sectionLabel(block: LessonBlock): string {
             <div class="editor-block-kicker"><span>{{ lessonBlockLabels[item.type] }}</span><small>{{ sectionLabel(item) }}</small></div>
             <h2 v-if="item.type === 'heading'">{{ item.content }}</h2>
             <p v-else-if="item.type === 'text'">{{ item.content }}</p>
-            <aside v-else-if="item.type === 'callout'"><MessageSquare /><div><strong>{{ item.title }}</strong><p>{{ item.content }}</p></div></aside>
+            <aside v-else-if="item.type === 'callout'"><UiAlertSquare /><div><strong>{{ item.title }}</strong><p>{{ item.content }}</p></div></aside>
             <section v-else-if="['grammar','vocabulary','conversation','flashcards','error_correction','translation','practice'].includes(item.type)" class="editor-theory">
               <component :is="getLessonBlockCatalogItem(item.type).icon" />
               <div><strong>{{ item.title }}</strong><p>{{ item.content }}</p></div>

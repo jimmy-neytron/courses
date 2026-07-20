@@ -1,24 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import AppHeader from '@/components/AppHeader.vue'
+import { Menu } from 'lucide-vue-next'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppDataBoundary from '@/components/common/AppDataBoundary.vue'
 import { useCourseStore } from '@/stores/courses'
+import { useLayoutStore } from '@/stores/layout'
 
-const route = useRoute()
 const store = useCourseStore()
-const title = computed(() => String(route.meta.title ?? 'Курсор'))
+const layout = useLayoutStore()
 </script>
 
 <template>
-  <div class="shell">
+  <div class="shell workspace-shell">
     <AppSidebar />
-    <div class="main">
-      <AppHeader :title="title" />
+    <button class="shell-mobile-menu" aria-label="Открыть навигацию" @click="layout.openSidebar"><Menu /></button>
+    <div class="shell-content">
       <div v-if="store.loading && store.courses.length" class="sync-bar">Обновляем данные…</div>
       <div v-if="store.loadError" class="sync-error">{{ store.loadError }}</div>
-      <main>
+      <main class="workspace-main">
         <AppDataBoundary><slot /></AppDataBoundary>
       </main>
     </div>

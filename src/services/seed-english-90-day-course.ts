@@ -206,6 +206,11 @@ export function buildEnglish90DayDemoCourse(): Course {
     accessRole: 'creator',
     creator: { id: 'demo-user', name: 'Вы' },
     joinCode: 'ENGLISH90',
+    kind: 'language',
+    languageCode: 'en',
+    sourceLevel: 'A0',
+    targetLevel: 'B1',
+    defaultLessonDuration: 60,
     learningPlan: {
       durationWeeks: 13,
       sessionsPerWeek: 7,
@@ -353,7 +358,7 @@ async function findExistingCourse(organizationId: string): Promise<ExistingCours
   return legacy as ExistingCourse | null
 }
 
-export async function seedEnglish90DayCourse(organizationId: string, userId: string): Promise<void> {
+export async function seedEnglish90DayCourse(organizationId: string, userId: string): Promise<string> {
   const db = requireSupabase()
   const existing = await findExistingCourse(organizationId)
   let courseId: string
@@ -368,7 +373,7 @@ export async function seedEnglish90DayCourse(organizationId: string, userId: str
         const { error } = await db.rpc('publish_course', { p_course_id: courseId, p_changelog: 'Published English 90-day curriculum' })
         if (error) throw error
       }
-      return
+      return courseId
     }
 
     const { error: deleteError } = await db.from('course_modules').delete().eq('course_id', courseId)
@@ -377,7 +382,7 @@ export async function seedEnglish90DayCourse(organizationId: string, userId: str
       slug: COURSE_SLUG,
       title: COURSE_TITLE,
       description: COURSE_DESCRIPTION,
-      source_level: 'A0', target_level: 'B1', duration_weeks: 13, lessons_per_week: 7,
+      language_code: 'en', source_level: 'A0', target_level: 'B1', duration_weeks: 13, lessons_per_week: 7,
       default_lesson_duration: 60, accent_color: '#42D392',
     }).eq('id', courseId)
     if (updateError) throw updateError
@@ -432,6 +437,7 @@ export async function seedEnglish90DayCourse(organizationId: string, userId: str
         public_content: publicContent(block),
         private_content: privateContent(block),
         points: block.type === 'single_choice' ? 1 : 0,
+        schema_version: block.schemaVersion ?? 1,
       }))
       const { error: blockError } = await db.from('lesson_blocks').insert(rows)
       if (blockError) throw blockError
@@ -443,4 +449,5 @@ export async function seedEnglish90DayCourse(organizationId: string, userId: str
     p_changelog: 'English 90-day curriculum v1 based on the supplied PDF program',
   })
   if (publishError) throw publishError
+  return courseId
 }

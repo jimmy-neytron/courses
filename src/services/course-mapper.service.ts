@@ -2,6 +2,7 @@ import { createLessonSectionConfig } from '@/composables/useCourseSections'
 import type {
   BlockType,
   Course,
+  CourseKind,
   Lesson,
   LessonBlock,
   LessonSectionConfig,
@@ -9,17 +10,6 @@ import type {
 } from '@/types/course'
 
 type DatabaseRow = Record<string, unknown>
-
-const defaultSectionIds = new Set<LessonSectionId>([
-  'theory',
-  'conversation',
-  'listening',
-  'cards',
-  'errors',
-  'translation',
-  'practice',
-  'test',
-])
 
 function asRecord(value: unknown): DatabaseRow {
   return value && typeof value === 'object' ? value as DatabaseRow : {}
@@ -33,8 +23,8 @@ function byPosition(left: DatabaseRow, right: DatabaseRow): number {
   return Number(left.position) - Number(right.position)
 }
 
-function parseSectionConfig(value: unknown): LessonSectionConfig[] {
-  if (!Array.isArray(value)) return createLessonSectionConfig()
+function parseSectionConfig(value: unknown, kind: CourseKind): LessonSectionConfig[] {
+  if (!Array.isArray(value)) return createLessonSectionConfig(undefined, kind)
 
   const sections = value
     .filter((item): item is DatabaseRow => Boolean(item) && typeof item === 'object')
@@ -45,7 +35,7 @@ function parseSectionConfig(value: unknown): LessonSectionConfig[] {
       order: Number(section.order ?? index),
     }))
 
-  return createLessonSectionConfig(sections)
+  return createLessonSectionConfig(sections, kind)
 }
 
 function resolveBlockType(row: DatabaseRow, publicContent: DatabaseRow): BlockType {
@@ -60,9 +50,27 @@ function resolveBlockType(row: DatabaseRow, publicContent: DatabaseRow): BlockTy
   return databaseType as BlockType
 }
 
+interface VersionedBlockContent {
+  schemaVersion: number
+  publicContent: DatabaseRow
+  privateContent: DatabaseRow
+}
+
+function readBlockContent(row: DatabaseRow): VersionedBlockContent {
+  const schemaVersion = Math.max(1, Number(row.schema_version ?? 1))
+
+  switch (schemaVersion) {
+    case 1:
+    default:
+      return {
+        schemaVersion,
+        publicContent: asRecord(row.public_content),
+        privateContent: asRecord(row.private_content),
+      }
+  }
+}
 function mapBlock(row: DatabaseRow): LessonBlock {
-  const publicContent = asRecord(row.public_content)
-  const privateContent = asRecord(row.private_content)
+  const { publicContent, privateContent, schemaVersion } = readBlockContent(row)
   const rawSectionId = String(publicContent.sectionId ?? '') as LessonSectionId
 
   return {
@@ -71,7 +79,8 @@ function mapBlock(row: DatabaseRow): LessonBlock {
     title: String(row.title ?? ''),
     content: String(publicContent.content ?? publicContent.text ?? publicContent.question ?? ''),
     required: Boolean(row.is_required),
-    sectionId: defaultSectionIds.has(rawSectionId) ? rawSectionId : undefined,
+    schemaVersion,
+    sectionId: rawSectionId || undefined,
     options: Array.isArray(publicContent.options)
       ? publicContent.options.map((option) => typeof option === 'string' ? option : String(asRecord(option).label ?? ''))
       : undefined,
@@ -110,7 +119,7 @@ function mapBlock(row: DatabaseRow): LessonBlock {
   }
 }
 
-function mapLesson(row: DatabaseRow): Lesson {
+function mapLesson(row: DatabaseRow, kind: CourseKind): Lesson {
   const blocks = asRows(row.lesson_blocks).sort(byPosition)
   const configBlock = blocks.find((block) => asRecord(block.public_content).kind === 'section_config')
 
@@ -120,17 +129,18 @@ function mapLesson(row: DatabaseRow): Lesson {
     duration: Number(row.duration_minutes),
     status: row.status === 'published' ? 'Опубликован' : 'Черновик',
     blocks: blocks.filter((block) => asRecord(block.public_content).kind !== 'section_config').map(mapBlock),
-    sectionConfig: parseSectionConfig(configBlock ? asRecord(configBlock.public_content).sections : undefined),
+    sectionConfig: parseSectionConfig(configBlock ? asRecord(configBlock.public_content).sections : undefined, kind),
     sectionConfigBlockId: configBlock ? String(configBlock.id) : undefined,
   }
 }
 
 export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course {
+  const kind: CourseKind = row.source_level || row.target_level ? 'language' : 'general'
   const modules = asRows(row.course_modules).sort(byPosition).map((module) => ({
     id: String(module.id),
     title: String(module.title),
     open: true,
-    lessons: asRows(module.lessons).sort(byPosition).map(mapLesson),
+    lessons: asRows(module.lessons).sort(byPosition).map((lesson) => mapLesson(lesson, kind)),
   }))
 
   const ownerId = String(row.owner_id ?? '')
@@ -143,6 +153,7 @@ export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course 
   const durationWeeks = Number(row.duration_weeks ?? 0)
   const sessionsPerWeek = Number(row.lessons_per_week ?? 0)
   const sessionMinutes = Number(row.default_lesson_duration ?? 0)
+  const languageCode = String(row.language_code ?? '')
 
   return {
     id: String(row.id),
@@ -154,6 +165,11 @@ export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course 
       avatarUrl: String(owner.avatar_url ?? '') || undefined,
     },
     joinCode: invite ? String(invite.code ?? '') || undefined : undefined,
+    kind,
+    languageCode: languageCode && languageCode !== 'und' ? languageCode : undefined,
+    sourceLevel: String(row.source_level ?? '') || undefined,
+    targetLevel: String(row.target_level ?? '') || undefined,
+    defaultLessonDuration: sessionMinutes || 45,
     learningPlan: durationWeeks && sessionsPerWeek && sessionMinutes ? {
       durationWeeks,
       sessionsPerWeek,
@@ -161,12 +177,14 @@ export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course 
       totalSessions,
       checkpointCount,
       cadence: `${sessionsPerWeek} занятий в неделю`,
-      outcome: `Путь от ${String(row.source_level ?? 'стартового уровня')} до ${String(row.target_level ?? 'целевого уровня')}`,
+      outcome: kind === 'language'
+        ? `Путь от ${String(row.source_level ?? 'стартового уровня')} до ${String(row.target_level ?? 'целевого уровня')}`
+        : `План освоения курса «${String(row.title)}»`,
     } : undefined,
     title: String(row.title),
     description: String(row.description ?? ''),
     cover: `linear-gradient(135deg,${String(row.accent_color ?? '#3AC3A6')},#142d39)`,
-    tag: String(row.target_level ?? 'КУРС'),
+    tag: kind === 'language' ? String(row.target_level ?? row.language_code ?? 'ЯЗЫК') : 'КУРС',
     status: row.status === 'published' ? 'Опубликован' : 'Черновик',
     updated: new Date(String(row.updated_at)).toLocaleDateString('ru-RU'),
     modules,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Textarea from 'primevue/textarea'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import type { LessonBlock } from '@/types/course'
 
 const props = defineProps<{ block: LessonBlock }>()
@@ -17,8 +17,8 @@ function updateQuestions(value?: string): void {
 <template>
   <section class="block-fieldset">
     <header><strong>Задание на перевод</strong><small>Исходный текст, эталон и вопросы на понимание</small></header>
-    <label>Исходный текст<Textarea v-model="block.sourceText" rows="6" auto-resize @update:model-value="emit('change')" /></label>
-    <label>Эталонный перевод<Textarea v-model="block.targetText" rows="6" auto-resize @update:model-value="emit('change')" /></label>
-    <label>Вопросы — каждый с новой строки<Textarea :model-value="block.comprehensionQuestions?.join('\n')" rows="5" auto-resize @update:model-value="updateQuestions" /></label>
+    <label>Исходный текст<UiTextarea v-model="block.sourceText" rows="6" auto-resize @update:model-value="emit('change')" /></label>
+    <label>Эталонный перевод<UiTextarea v-model="block.targetText" rows="6" auto-resize @update:model-value="emit('change')" /></label>
+    <label>Вопросы — каждый с новой строки<UiTextarea :model-value="block.comprehensionQuestions?.join('\n')" rows="5" auto-resize @update:model-value="updateQuestions" /></label>
   </section>
 </template>

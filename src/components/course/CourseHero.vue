@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { BookOpen, Clock3, Eye, FileText, Play, Sparkles, Trash2, UsersRound } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
+import UiButton from '@/components/ui/UiButton.vue'
 import CourseRoleBadge from '@/components/course/CourseRoleBadge.vue'
 import type { Course } from '@/types/course'
 
@@ -27,9 +27,9 @@ defineEmits<{ publish: []; delete: []; invite: [] }>()
     </div>
     <div v-if="course.accessRole === 'creator'" class="product-course-actions">
       <RouterLink :to="`/preview/courses/${course.id}`" class="product-button product-button--secondary"><Eye />Предпросмотр</RouterLink>
-      <PrimeButton severity="secondary" outlined @click="$emit('invite')"><UsersRound />Пригласить</PrimeButton>
-      <PrimeButton :disabled="course.status === 'Опубликован'" @click="$emit('publish')"><Sparkles />{{ course.status === 'Опубликован' ? 'Опубликовано' : 'Опубликовать' }}</PrimeButton>
-      <PrimeButton severity="danger" outlined @click="$emit('delete')"><Trash2 />Удалить курс</PrimeButton>
+      <UiButton severity="secondary" outlined @click="$emit('invite')"><UsersRound />Пригласить</UiButton>
+      <UiButton :disabled="course.status === 'Опубликован'" @click="$emit('publish')"><Sparkles />{{ course.status === 'Опубликован' ? 'Опубликовано' : 'Опубликовать' }}</UiButton>
+      <UiButton severity="danger" outlined @click="$emit('delete')"><Trash2 />Удалить курс</UiButton>
     </div>
     <div v-else class="product-course-actions">
       <RouterLink :to="`/preview/courses/${course.id}`" class="product-button"><Play />Продолжить обучение</RouterLink>

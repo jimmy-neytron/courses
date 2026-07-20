@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ArrowLeft, BookOpen } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
-import InputText from 'primevue/inputtext'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiInput from '@/components/ui/UiInput.vue'
 import DefaultLayout from '@/layouts/default.vue'
 import AppModal from '@/components/AppModal.vue'
 import FormField from '@/components/common/FormField.vue'
@@ -60,15 +60,15 @@ const {
 
       <AppModal v-if="moduleDialogOpen" title="Новый модуль" @close="moduleDialogOpen = false">
         <form class="form" @submit.prevent="createModule">
-          <FormField label="Название модуля"><InputText v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency" fluid /></FormField>
-          <div class="form-actions"><PrimeButton type="button" severity="secondary" outlined @click="moduleDialogOpen = false">Отмена</PrimeButton><PrimeButton type="submit">Добавить модуль</PrimeButton></div>
+          <FormField label="Название модуля"><UiInput v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency" fluid /></FormField>
+          <div class="form-actions"><UiButton type="button" severity="secondary" outlined @click="moduleDialogOpen = false">Отмена</UiButton><UiButton type="submit">Добавить модуль</UiButton></div>
         </form>
       </AppModal>
 
       <AppModal v-if="lessonDialogOpen" title="Новый урок" @close="lessonDialogOpen = false">
         <form class="form" @submit.prevent="createLesson">
-          <FormField label="Название урока"><InputText v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid /></FormField>
-          <div class="form-actions"><PrimeButton type="button" severity="secondary" outlined @click="lessonDialogOpen = false">Отмена</PrimeButton><PrimeButton type="submit">Создать и открыть</PrimeButton></div>
+          <FormField label="Название урока"><UiInput v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid /></FormField>
+          <div class="form-actions"><UiButton type="button" severity="secondary" outlined @click="lessonDialogOpen = false">Отмена</UiButton><UiButton type="submit">Создать и открыть</UiButton></div>
         </form>
       </AppModal>
 

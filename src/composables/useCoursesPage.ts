@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCourseStore } from '@/stores/courses'
-import type { Course, CourseStatus } from '@/types/course'
+import type { Course, CourseCreateInput, CourseStatus } from '@/types/course'
 
 export type CourseStatusFilter = CourseStatus | 'Все'
 export type CourseAccessFilter = 'Все курсы' | 'Созданные мной' | 'Я прохожу'
@@ -33,11 +33,11 @@ export function useCoursesPage() {
     ))
   })
 
-  async function createCourse(input: { title: string; description: string }): Promise<void> {
-    const id = await store.createCourse(
-      input.title,
-      input.description || 'Новая учебная программа',
-    )
+  async function createCourse(input: CourseCreateInput): Promise<void> {
+    const id = await store.createCourse({
+      ...input,
+      description: input.description || 'Новая учебная программа',
+    })
     createDialogOpen.value = false
     await router.push(`/app/courses/${id}`)
   }

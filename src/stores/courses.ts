@@ -1,10 +1,9 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-import type { BlockType, Course, LessonSectionConfig } from '@/types/course'
+import type { BlockType, Course, CourseCreateInput, LessonSectionConfig } from '@/types/course'
 import { createLessonSectionConfig } from '@/composables/useCourseSections'
 import { useAuthStore } from '@/stores/auth'
 import { isSupabaseConfigured } from '@/services/supabase'
-import { buildEnglish90DayDemoCourse, seedEnglish90DayCourse } from '@/services/seed-english-90-day-course'
 import { uploadLessonAudio } from '@/services/lesson-audio.service'
 import { uploadLessonPdf } from '@/services/lesson-pdf.service'
 import { deleteLessonAssets, releaseLessonObjectUrls } from '@/services/lesson-assets.service'
@@ -34,7 +33,7 @@ import {
   updateLessonRecord,
 } from '@/services/course-repository.service'
 
-const demoCourses: Course[] = [buildEnglish90DayDemoCourse()]
+const demoCourses: Course[] = []
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
@@ -86,12 +85,6 @@ export const useCourseStore = defineStore('courses', () => {
       if (!courses.value.length) loading.value = true
 
       try {
-        const seedKey = `english-90-days-seeded-v1-${organizationId}`
-        if (localStorage.getItem(seedKey) !== 'true') {
-          await seedEnglish90DayCourse(organizationId, userId)
-          localStorage.setItem(seedKey, 'true')
-        }
-
         courses.value = await listCourses(organizationId, userId)
         hydratedOrganizationId = organizationId
         hydrated.value = true
@@ -153,19 +146,36 @@ export const useCourseStore = defineStore('courses', () => {
     return bootstrapPromise
   }
 
-  async function createCourse(title: string, description: string): Promise<string> {
+  async function createCourse(input: CourseCreateInput): Promise<string> {
     if (!isSupabaseConfigured) {
       const id = `course-${Date.now()}`
+      const hasPlan = Boolean(input.durationWeeks && input.lessonsPerWeek)
       courses.value.unshift({
         id,
         ownerId: 'demo-user',
         accessRole: 'creator',
         creator: { id: 'demo-user', name: 'Вы' },
         joinCode: `DEMO${String(Date.now()).slice(-6)}`,
-        title,
-        description,
+        kind: input.kind,
+        languageCode: input.languageCode,
+        sourceLevel: input.sourceLevel,
+        targetLevel: input.targetLevel,
+        defaultLessonDuration: input.defaultLessonDuration,
+        learningPlan: hasPlan ? {
+          durationWeeks: input.durationWeeks!,
+          sessionsPerWeek: input.lessonsPerWeek!,
+          sessionMinutes: input.defaultLessonDuration,
+          totalSessions: 0,
+          checkpointCount: 0,
+          cadence: `${input.lessonsPerWeek} занятий в неделю`,
+          outcome: input.kind === 'language'
+            ? `Путь от ${input.sourceLevel ?? 'начального уровня'} до ${input.targetLevel ?? 'целевого уровня'}`
+            : `План освоения курса «${input.title}»`,
+        } : undefined,
+        title: input.title,
+        description: input.description,
         cover: 'linear-gradient(135deg,#176452,#3ac3a6)',
-        tag: 'EN',
+        tag: input.kind === 'language' ? input.targetLevel ?? input.languageCode?.toUpperCase() ?? 'ЯЗЫК' : 'КУРС',
         status: 'Черновик',
         updated: 'Только что',
         modules: [],
@@ -176,10 +186,11 @@ export const useCourseStore = defineStore('courses', () => {
     const auth = useAuthStore()
     if (!auth.organization || !auth.user) throw new Error('Организация пользователя не найдена')
 
-    const id = await createCourseRecord(auth.organization.id, auth.user.id, title, description)
+    const id = await createCourseRecord(auth.organization.id, auth.user.id, input)
     await hydrate(true)
     return id
   }
+
   async function joinCourse(code: string): Promise<string> {
     if (!isSupabaseConfigured) throw new Error('Подключите Supabase, чтобы присоединяться к курсам')
     const courseId = await joinCourseByCode(code)
@@ -212,23 +223,30 @@ export const useCourseStore = defineStore('courses', () => {
     await hydrate(true)
   }
   async function addLesson(courseId: string, moduleId: string, title = 'Новый урок'): Promise<string | undefined> {
-    const module = findCourse(courseId)?.modules.find((item) => item.id === moduleId)
-    if (!module) return
+    const course = findCourse(courseId)
+    const module = course?.modules.find((item) => item.id === moduleId)
+    if (!course || !module) return
 
     if (!isSupabaseConfigured) {
       const id = `lesson-${Date.now()}`
       module.lessons.push({
         id,
         title,
-        duration: 45,
+        duration: course.defaultLessonDuration,
         status: 'Черновик',
         blocks: [],
-        sectionConfig: createLessonSectionConfig(),
+        sectionConfig: createLessonSectionConfig(undefined, course.kind),
       })
       return id
     }
 
-    const id = await createLessonRecord(courseId, moduleId, title, module.lessons.length)
+    const id = await createLessonRecord(
+      courseId,
+      moduleId,
+      title,
+      module.lessons.length,
+      course.defaultLessonDuration,
+    )
     await hydrate(true)
     return id
   }
@@ -261,7 +279,7 @@ export const useCourseStore = defineStore('courses', () => {
     const found = findLesson(lessonId)
     if (!found) return
 
-    found.lesson.sectionConfig = createLessonSectionConfig(sections)
+    found.lesson.sectionConfig = createLessonSectionConfig(sections, found.course.kind)
     if (!isSupabaseConfigured) return
 
     found.lesson.sectionConfigBlockId = await saveSectionConfigRecord({

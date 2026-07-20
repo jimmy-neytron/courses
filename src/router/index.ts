@@ -4,9 +4,9 @@ import { useAuthStore } from '@/stores/auth'
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/app' },
+    { path: '/', redirect: '/app/courses' },
     { path: '/auth', component: () => import('@/pages/auth/index.vue'), meta: { guest: true } },
-    { path: '/app', component: () => import('@/pages/index.vue'), meta: { title: 'Обзор', auth: true } },
+    { path: '/app', redirect: '/app/courses' },
     { path: '/app/courses', component: () => import('@/pages/courses/index.vue'), meta: { title: 'Курсы', auth: true } },
     {
       path: '/app/courses/:courseId',
@@ -33,7 +33,7 @@ export const router = createRouter({
       component: () => import('@/pages/[section].vue'),
       meta: { auth: true },
     },
-    { path: '/:pathMatch(.*)*', redirect: '/app' },
+    { path: '/:pathMatch(.*)*', redirect: '/app/courses' },
   ],
 })
 

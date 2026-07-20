@@ -50,7 +50,7 @@
   margin-right: auto;
 }
 
-.course-filter-toolbar .p-selectbutton {
+.course-filter-toolbar .ui-segmented {
   display: inline-flex;
   padding: 3px;
   border: 1px solid #26362c;
@@ -58,7 +58,7 @@
   background: #0e1511;
 }
 
-.course-filter-toolbar .p-togglebutton {
+.course-filter-toolbar .ui-segmented-option {
   min-height: 34px;
   padding-inline: 11px;
   border: 0;
@@ -68,7 +68,7 @@
   font-size: 11px;
 }
 
-.course-filter-toolbar .p-togglebutton.p-togglebutton-checked {
+.course-filter-toolbar .ui-segmented-option.is-active {
   background: #1a3022;
   color: #7ce7aa;
 }
@@ -122,7 +122,7 @@
   gap: 18px;
 }
 
-.course-join-dialog .p-inputtext {
+.course-join-dialog .ui-input {
   min-height: 46px;
   text-transform: uppercase;
   letter-spacing: .08em;
@@ -151,7 +151,7 @@
   letter-spacing: .12em;
 }
 
-.course-invite-code .p-button {
+.course-invite-code .ui-button {
   grid-column: 2;
   grid-row: 1 / span 2;
 }
@@ -250,11 +250,11 @@
   }
 
   .course-filter-toolbar > label,
-  .course-filter-toolbar .p-selectbutton {
+  .course-filter-toolbar .ui-segmented {
     width: 100%;
   }
 
-  .course-filter-toolbar .p-selectbutton {
+  .course-filter-toolbar .ui-segmented {
     overflow-x: auto;
   }
 
@@ -262,7 +262,7 @@
     grid-template-columns: 1fr;
   }
 
-  .course-invite-code .p-button {
+  .course-invite-code .ui-button {
     grid-column: 1;
     grid-row: auto;
   }

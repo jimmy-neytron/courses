@@ -3,12 +3,23 @@ import type { Course } from '@/types/course'
 const SUPABASE_CACHE_PREFIX = 'course-platform-cache-v2-'
 const DEMO_CACHE_KEY = 'cursor-courses-v4'
 
+function inferCourseKind(course: Course): Course['kind'] {
+  if (course.kind) return course.kind
+  if (course.sourceLevel || course.targetLevel) return 'language'
+  const languageTypes = new Set(['vocabulary', 'conversation', 'flashcards', 'error_correction', 'translation'])
+  return course.modules.some((module) => module.lessons.some((lesson) => (
+    lesson.blocks.some((block) => languageTypes.has(block.type))
+  ))) ? 'language' : 'general'
+}
 function normalizeCachedCourse(course: Course): Course {
   const ownerId = course.ownerId || 'legacy-owner'
   return {
     ...course,
     ownerId,
     accessRole: course.accessRole || 'creator',
+    kind: inferCourseKind(course),
+    languageCode: course.languageCode || (inferCourseKind(course) === 'language' ? 'en' : undefined),
+    defaultLessonDuration: course.defaultLessonDuration || 45,
     creator: course.creator || { id: ownerId, name: 'Вы' },
   }
 }

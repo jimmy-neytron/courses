@@ -10,12 +10,10 @@
         "audit:course": "node scripts/audit-english-course.mjs"
     },
     "dependencies": {
-        "@primeuix/themes": "2.0.3",
         "@supabase/supabase-js": "^2.110.7",
         "@vueuse/core": "14.3.0",
         "lucide-vue-next": "^0.468.0",
         "pinia": "^3.0.3",
-        "primevue": "4.5.5",
         "vue": "^3.5.17",
         "vue-draggable-plus": "^0.6.1",
         "vue-router": "^4.5.1"

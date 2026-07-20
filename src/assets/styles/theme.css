@@ -45,11 +45,11 @@
     outline-offset: 2px;
   }
 
-  .p-component {
+  .ui-component {
     font-family: inherit;
   }
 
-  .p-avatar {
+  .ui-avatar {
     flex: 0 0 auto;
     width: 36px;
     min-width: 36px;
@@ -62,26 +62,26 @@
     border: 1px solid #2e4737;
   }
 
-  .profile .p-avatar {
+  .profile .ui-avatar {
     width: 34px;
     min-width: 34px;
     height: 34px;
       flex: 0;
   }
 
-  .header-avatar.p-avatar {
+  .header-avatar.ui-avatar {
     width: 36px;
     min-width: 36px;
     height: 36px;
   }
 
-  .profile > .p-avatar,
-  .app-header > .p-avatar {
+  .profile > .ui-avatar,
+  .app-header > .ui-avatar {
     display: inline-flex;
     padding: 0;
   }
 
-  .p-button {
+  .ui-button {
     min-height: 42px;
     border-radius: 10px;
     font-size: var(--font-small);
@@ -90,41 +90,41 @@
     box-shadow: none;
   }
 
-  .p-button.p-button-icon-only {
+  .ui-button.is-rounded {
     width: 40px;
     min-width: 40px;
     padding: 0;
   }
 
-  .app-header .p-button {
+  .app-header .ui-button {
     flex: 0 0 40px;
   }
 
-  .p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-danger):not(.p-button-secondary) {
+  .ui-button:not(.is-outlined):not(.is-text):not(.is-danger):not(.is-secondary) {
     background: linear-gradient(135deg, #22c875, #159a58);
     border-color: #22c875;
     color: #03130b;
   }
 
-  .p-button:not(:disabled):hover {
+  .ui-button:not(:disabled):hover {
     transform: translateY(-1px);
   }
 
-  .p-button.p-button-secondary,
-  .p-button.p-button-outlined {
+  .ui-button.is-secondary,
+  .ui-button.is-outlined {
     background: #121a15;
     border-color: #2a3b30;
     color: #e9f2ec;
   }
 
-  .p-button.p-button-text {
+  .ui-button.is-text {
     color: #72e9a8;
   }
 
-  .p-inputtext,
-  .p-textarea,
-  .p-select,
-  .p-password-input {
+  .ui-input,
+  .ui-textarea,
+  .ui-select,
+  .ui-input {
     width: 100%;
     border-radius: 10px;
     border-color: #293a30;
@@ -136,22 +136,22 @@
     line-height: 1.4;
   }
 
-  .p-inputtext:hover,
-  .p-textarea:hover,
-  .p-select:hover,
-  .p-password-input:hover {
+  .ui-input:hover,
+  .ui-textarea:hover,
+  .ui-select:hover,
+  .ui-input:hover {
     border-color: #3b5745;
   }
 
-  .p-inputtext:enabled:focus,
-  .p-textarea:enabled:focus,
-  .p-select.p-focus,
-  .p-password-input:enabled:focus {
+  .ui-input:enabled:focus,
+  .ui-textarea:enabled:focus,
+  .ui-select.ui-focus,
+  .ui-input:enabled:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px #22c87520;
   }
 
-  .p-dialog {
+  .ui-modal {
     overflow: hidden;
     border: 1px solid #293b30;
     border-radius: 16px;
@@ -159,43 +159,43 @@
     box-shadow: var(--shadow);
   }
 
-  .p-dialog-header,
-  .p-dialog-content,
-  .p-dialog-footer {
+  .ui-modal-header,
+  .ui-modal-content,
+  .ui-modal-footer {
     background: #0b100d;
     color: var(--text);
   }
 
-  .p-dialog-mask {
+  .ui-modal-layer {
     background: #020503d9;
     backdrop-filter: blur(8px);
   }
 
-  .p-select-overlay,
-  .p-contextmenu,
-  .p-menu,
-  .p-popover {
+  .ui-select-overlay,
+  .ui-contextmenu,
+  .ui-menu,
+  .ui-popover {
     border: 1px solid #293b30;
     border-radius: 12px;
     background: #0d1410;
     box-shadow: 0 18px 55px #000a;
   }
 
-  .p-select-option.p-select-option-selected,
-  .p-menu-item:not(.p-disabled) > .p-menu-item-content:hover {
+  .ui-select-option.ui-select-option-selected,
+  .ui-menu-item:not(.ui-disabled) > .ui-menu-item-content:hover {
     background: #22c87518;
     color: #8af2b9;
   }
 
-  .p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider {
+  .ui-toggleswitch.ui-toggleswitch-checked .ui-toggleswitch-slider {
     background: var(--accent);
   }
 
-  .p-fileupload-basic .p-button {
+  .ui-fileupload-basic .ui-button {
     width: 100%;
   }
 
-  .p-toast-message {
+  .ui-toast-message {
     border: 1px solid #2a4133;
     border-radius: 12px;
     background: #0e1711ee;
@@ -356,9 +356,9 @@
   line-height: 1.4;
 }
 
-.product-settings-page .p-inputtext,
-.product-settings .p-inputtext,
-.product-settings .p-textarea {
+.product-settings-page .ui-input,
+.product-settings .ui-input,
+.product-settings .ui-textarea {
   min-height: 46px;
   padding: 11px 13px;
   font-size: var(--font-body);
@@ -428,7 +428,7 @@
   font-size: var(--font-caption);
 }
 
-.product-toolbar .p-inputtext {
+.product-toolbar .ui-input {
   min-height: 38px;
   padding: 0;
   border: 0;
@@ -437,7 +437,7 @@
   font-size: var(--font-small);
 }
 
-.app-header .p-button {
+.app-header .ui-button {
   flex-basis: 38px;
   width: 38px;
   min-width: 38px;
@@ -445,10 +445,10 @@
   height: 38px;
 }
 
-.product-editor .p-button,
-.product-editor .p-inputtext,
-.product-editor .p-select,
-.product-editor .p-textarea {
+.product-editor .ui-button,
+.product-editor .ui-input,
+.product-editor .ui-select,
+.product-editor .ui-textarea {
   min-height: 38px;
   font-size: 12px;
 }

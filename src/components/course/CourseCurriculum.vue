@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import { BookOpen, ChevronDown, Clock3, GripVertical, Plus } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
+import UiButton from '@/components/ui/UiButton.vue'
 import SaveState from '@/components/common/SaveState.vue'
 import type { CourseModule } from '@/types/course'
 
@@ -30,7 +30,7 @@ const modules = computed({
       </div>
       <div class="product-save-state">
         <SaveState :saving="saving" :saved="saved" />
-        <PrimeButton severity="secondary" outlined @click="emit('addModule')"><Plus />Новый модуль</PrimeButton>
+        <UiButton severity="secondary" outlined @click="emit('addModule')"><Plus />Новый модуль</UiButton>
       </div>
     </div>
 
@@ -64,7 +64,7 @@ const modules = computed({
     </button>
     <div v-else class="product-empty">
       <BookOpen /><h3>Начните с первого модуля</h3><p>Соберите программу из логичных этапов и добавьте уроки.</p>
-      <PrimeButton @click="emit('addModule')"><Plus />Создать модуль</PrimeButton>
+      <UiButton @click="emit('addModule')"><Plus />Создать модуль</UiButton>
     </div>
   </section>
 </template>

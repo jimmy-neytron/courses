@@ -31,10 +31,16 @@ export function useLessonEditor() {
   const editorError = ref('')
   const { value: saved, show: showSaved } = useTransientFlag(1200)
 
-  const filteredPalette = computed(() => filterLessonBlockCatalog(paletteQuery.value))
-  const pickerPalette = computed(() => filterLessonBlockCatalog(addQuery.value))
-  const availableSections = computed(() => createLessonSectionConfig(found.value?.lesson.sectionConfig))
-  const selectedSectionId = computed(() => selected.value ? resolveLessonBlockSection(selected.value) : 'theory')
+  const courseKind = computed(() => found.value?.course.kind ?? 'general')
+  const filteredPalette = computed(() => filterLessonBlockCatalog(paletteQuery.value, courseKind.value))
+  const pickerPalette = computed(() => filterLessonBlockCatalog(addQuery.value, courseKind.value))
+  const availableSections = computed(() => createLessonSectionConfig(
+    found.value?.lesson.sectionConfig,
+    courseKind.value,
+  ))
+  const selectedSectionId = computed(() => selected.value
+    ? resolveLessonBlockSection(selected.value, availableSections.value, courseKind.value)
+    : availableSections.value[0]?.id ?? 'content')
   const correctAnswerOptions = computed(() => (selected.value?.options ?? []).map((option, index) => ({
     label: `${String.fromCharCode(65 + index)}. ${option}`,
     value: index,
@@ -188,7 +194,10 @@ export function useLessonEditor() {
   }
 
   function openSections() {
-    sectionDraft.value = createLessonSectionConfig(found.value?.lesson.sectionConfig)
+    sectionDraft.value = createLessonSectionConfig(
+      found.value?.lesson.sectionConfig,
+      courseKind.value,
+    )
     sectionsDialogOpen.value = true
   }
 

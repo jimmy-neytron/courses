@@ -67,7 +67,7 @@ const emit = defineEmits<{ complete: [] }>()
       <p>{{ block.content }}</p>
     </section>
     <aside v-else-if="block.type === 'callout'">
-      <MessageSquare />
+      <UiAlertSquare />
       <div><b>{{ block.title }}</b><p>{{ block.content }}</p></div>
     </aside>
     <section v-else><h3>{{ block.title }}</h3><p>{{ block.content }}</p></section>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Save } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
-import InputText from 'primevue/inputtext'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiInput from '@/components/ui/UiInput.vue'
 import FormField from '@/components/common/FormField.vue'
 import SaveState from '@/components/common/SaveState.vue'
 
@@ -14,9 +14,9 @@ defineEmits<{ save: [] }>()
   <section class="product-settings-page">
     <article><span class="eyebrow">Personal profile</span><h2>Данные профиля</h2><p>Имя отображается в интерфейсе и сохраняется в Supabase Auth.</p></article>
     <form @submit.prevent="$emit('save')">
-      <FormField label="Имя"><InputText v-model="model" fluid /></FormField>
-      <FormField label="Email"><InputText :model-value="email" disabled fluid /></FormField>
-      <div><PrimeButton type="submit"><Save />Сохранить</PrimeButton><SaveState :saved="saved" /></div>
+      <FormField label="Имя"><UiInput v-model="model" fluid /></FormField>
+      <FormField label="Email"><UiInput :model-value="email" disabled fluid /></FormField>
+      <div><UiButton type="submit"><Save />Сохранить</UiButton><SaveState :saved="saved" /></div>
     </form>
   </section>
 </template>

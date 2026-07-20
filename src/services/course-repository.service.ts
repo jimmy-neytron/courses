@@ -1,4 +1,4 @@
-import type { BlockType, Course, Lesson, LessonBlock, LessonSectionConfig } from '@/types/course'
+import type { BlockType, Course, CourseCreateInput, Lesson, LessonBlock, LessonSectionConfig } from '@/types/course'
 import { mapDatabaseCourse } from '@/services/course-mapper.service'
 import { createLessonAudioUrl } from '@/services/lesson-audio.service'
 import { createLessonPdfUrl } from '@/services/lesson-pdf.service'
@@ -11,8 +11,8 @@ import {
 import { requireSupabase } from '@/services/supabase'
 import { slugify } from '@/utils/slugify'
 
-const courseSelect = 'id,owner_id,title,description,status,source_level,target_level,duration_weeks,lessons_per_week,default_lesson_duration,accent_color,updated_at,owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url),course_memberships(user_id,role),course_invites(code),course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))'
-const fallbackCourseSelect = 'id,owner_id,title,description,status,source_level,target_level,duration_weeks,lessons_per_week,default_lesson_duration,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,position)))'
+const courseSelect = 'id,owner_id,title,description,status,language_code,source_level,target_level,duration_weeks,lessons_per_week,default_lesson_duration,accent_color,updated_at,owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url),course_memberships(user_id,role),course_invites(code),course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,schema_version,position)))'
+const fallbackCourseSelect = 'id,owner_id,title,description,status,language_code,source_level,target_level,duration_weeks,lessons_per_week,default_lesson_duration,accent_color,updated_at,course_modules(id,title,position,lessons(id,title,duration_minutes,status,position,lesson_blocks(id,block_type,title,public_content,private_content,is_required,schema_version,position)))'
 
 async function resolveAssetUrls(courses: Course[]): Promise<void> {
   const blocks = courses.flatMap((course) => course.modules.flatMap(
@@ -58,18 +58,20 @@ export async function listCourses(organizationId: string, userId: string): Promi
 export async function createCourseRecord(
   organizationId: string,
   ownerId: string,
-  title: string,
-  description: string,
+  input: CourseCreateInput,
 ): Promise<string> {
   const { data, error } = await requireSupabase().from('courses').insert({
     organization_id: organizationId,
     owner_id: ownerId,
-    title,
-    description,
-    slug: slugify(title, 'course'),
-    language_code: 'en',
-    source_level: 'A0',
-    target_level: 'B2',
+    title: input.title,
+    description: input.description,
+    slug: slugify(input.title, 'course'),
+    language_code: input.kind === 'language' ? input.languageCode || 'und' : 'und',
+    source_level: input.kind === 'language' ? input.sourceLevel : null,
+    target_level: input.kind === 'language' ? input.targetLevel : null,
+    duration_weeks: input.durationWeeks,
+    lessons_per_week: input.lessonsPerWeek,
+    default_lesson_duration: input.defaultLessonDuration,
   }).select('id').single()
   if (error) throw error
   return String(data.id)
@@ -85,13 +87,14 @@ export async function createLessonRecord(
   moduleId: string,
   title: string,
   position: number,
+  durationMinutes: number,
 ): Promise<string> {
   const { data, error } = await requireSupabase().from('lessons').insert({
     course_id: courseId,
     module_id: moduleId,
     title,
     slug: slugify(title, 'lesson'),
-    duration_minutes: 45,
+    duration_minutes: durationMinutes,
     position,
   }).select('id').single()
   if (error) throw error
@@ -113,6 +116,7 @@ export async function createBlockRecord(
     public_content: serializePublicBlockContent(block),
     private_content: serializePrivateBlockContent(block),
     position,
+    schema_version: block.schemaVersion ?? 1,
   })
   if (error) throw error
 }
@@ -132,6 +136,7 @@ export async function updateBlockRecord(blockId: string, block: LessonBlock): Pr
     public_content: serializePublicBlockContent(block),
     private_content: serializePrivateBlockContent(block),
     is_required: block.required,
+    schema_version: block.schemaVersion ?? 1,
   }).eq('id', blockId)
   if (error) throw error
 }
@@ -162,6 +167,7 @@ export async function saveSectionConfigRecord(input: SaveSectionConfigInput): Pr
     private_content: {},
     is_required: false,
     position: 9999,
+    schema_version: 1,
   }).select('id').single()
   if (error) throw error
   return String(data.id)
@@ -176,6 +182,10 @@ export async function updateCourseRecord(course: Course): Promise<void> {
   const { error } = await requireSupabase().from('courses').update({
     title: course.title,
     description: course.description,
+    language_code: course.kind === 'language' ? course.languageCode || 'und' : 'und',
+    source_level: course.kind === 'language' ? course.sourceLevel : null,
+    target_level: course.kind === 'language' ? course.targetLevel : null,
+    default_lesson_duration: course.defaultLessonDuration,
   }).eq('id', course.id)
   if (error) throw error
 }

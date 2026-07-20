@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { GraduationCap } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Message from 'primevue/message'
-import Password from 'primevue/password'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiAlert from '@/components/ui/UiAlert.vue'
 import { useAuthForm } from '@/composables/useAuthForm'
 
 const { isLogin, name, email, password, busy, error, notice, submit, switchMode } = useAuthForm()
@@ -17,30 +16,30 @@ const { isLogin, name, email, password, busy, error, notice, submit, switchMode 
     <p>{{ isLogin ? 'Продолжите работу над своими курсами.' : 'Личное пространство создастся автоматически.' }}</p>
 
     <label v-if="!isLogin">Ваше имя
-      <InputText v-model="name" required autocomplete="name" placeholder="Алексей Петров" fluid />
+      <UiInput v-model="name" required autocomplete="name" placeholder="Алексей Петров" fluid />
     </label>
     <label>Email
-      <InputText v-model="email" required type="email" autocomplete="email" placeholder="you@example.com" fluid />
+      <UiInput v-model="email" required type="email" autocomplete="email" placeholder="you@example.com" fluid />
     </label>
     <label>Пароль
-      <Password
+      <UiInput type="password"
         v-model="password"
         required
         :minlength="6"
         :autocomplete="isLogin ? 'current-password' : 'new-password'"
         placeholder="Минимум 6 символов"
-        :feedback="!isLogin"
-        toggle-mask
+
+
         fluid
       />
     </label>
 
-    <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
-    <Message v-if="notice" severity="success" :closable="false">{{ notice }}</Message>
-    <PrimeButton type="submit" :loading="busy" fluid>{{ isLogin ? 'Войти' : 'Зарегистрироваться' }}</PrimeButton>
+    <UiAlert v-if="error" severity="error">{{ error }}</UiAlert>
+    <UiAlert v-if="notice" severity="success">{{ notice }}</UiAlert>
+    <UiButton type="submit" :loading="busy" fluid>{{ isLogin ? 'Войти' : 'Зарегистрироваться' }}</UiButton>
     <p class="auth-switch">
       {{ isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
-      <PrimeButton type="button" link @click="switchMode">{{ isLogin ? 'Создать' : 'Войти' }}</PrimeButton>
+      <UiButton type="button" link @click="switchMode">{{ isLogin ? 'Создать' : 'Войти' }}</UiButton>
     </p>
   </form>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { LayoutTemplate, Plus, Search } from 'lucide-vue-next'
-import InputText from 'primevue/inputtext'
+import UiInput from '@/components/ui/UiInput.vue'
 import {
   groupLessonBlockCatalog,
   type LessonBlockCatalogItem,
@@ -24,7 +24,7 @@ const groups = computed(() => groupLessonBlockCatalog(props.items))
       </div>
       <label class="palette-search">
         <Search />
-        <InputText v-model="query" type="search" placeholder="Найти блок…" aria-label="Найти тип блока" />
+        <UiInput v-model="query" type="search" placeholder="Найти блок…" aria-label="Найти тип блока" />
       </label>
     </div>
 

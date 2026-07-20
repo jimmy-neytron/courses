@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Plus, Search } from 'lucide-vue-next'
-import InputText from 'primevue/inputtext'
+import UiInput from '@/components/ui/UiInput.vue'
 import AppModal from '@/components/AppModal.vue'
 import {
   groupLessonBlockCatalog,
@@ -29,7 +29,7 @@ function chooseFirst(): void {
       </div>
       <label class="block-picker-search">
         <Search />
-        <InputText v-model="query" type="search" placeholder="Теория, Listening, тест…" autofocus @keydown.enter.prevent="chooseFirst" />
+        <UiInput v-model="query" type="search" placeholder="Теория, Listening, тест…" autofocus @keydown.enter.prevent="chooseFirst" />
       </label>
       <section v-for="group in groups" :key="group.label" class="block-picker-group">
         <h3>{{ group.label }}</h3>

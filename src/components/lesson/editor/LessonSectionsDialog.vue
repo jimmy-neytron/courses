@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 import { GripVertical } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import ToggleSwitch from 'primevue/toggleswitch'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
 import AppModal from '@/components/AppModal.vue'
 import type { LessonSectionConfig } from '@/types/course'
 
@@ -19,11 +19,11 @@ defineEmits<{ close: []; save: [] }>()
       <VueDraggable v-model="sections" item-key="id" handle=".section-drag-handle" :animation="160" class="lesson-section-list">
         <article v-for="section in sections" :key="section.id">
           <button class="drag-handle section-drag-handle" aria-label="Изменить порядок"><GripVertical /></button>
-          <label><small>Название</small><InputText v-model="section.label" fluid /></label>
-          <div><small>Доступен в уроке</small><ToggleSwitch v-model="section.visible" /></div>
+          <label><small>Название</small><UiInput v-model="section.label" fluid /></label>
+          <div><small>Доступен в уроке</small><UiSwitch v-model="section.visible" /></div>
         </article>
       </VueDraggable>
-      <div class="form-actions"><PrimeButton severity="secondary" outlined @click="$emit('close')">Отмена</PrimeButton><PrimeButton :disabled="saving" @click="$emit('save')">{{ saving ? 'Сохраняем…' : 'Сохранить разделы' }}</PrimeButton></div>
+      <div class="form-actions"><UiButton severity="secondary" outlined @click="$emit('close')">Отмена</UiButton><UiButton :disabled="saving" @click="$emit('save')">{{ saving ? 'Сохраняем…' : 'Сохранить разделы' }}</UiButton></div>
     </div>
   </AppModal>
 </template>

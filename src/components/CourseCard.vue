@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowUpRight, BookOpen, Clock3, Trash2 } from 'lucide-vue-next'
-import PrimeButton from 'primevue/button'
+import UiButton from '@/components/ui/UiButton.vue'
 import CourseRoleBadge from '@/components/course/CourseRoleBadge.vue'
 import type { Course } from '@/types/course'
 
@@ -35,8 +35,8 @@ const canDelete = computed(() => props.deletable && props.course.accessRole === 
         </div>
       </div>
     </RouterLink>
-    <PrimeButton v-if="canDelete" severity="danger" text rounded class="course-card-delete" :aria-label="`Удалить курс ${course.title}`" @click="emit('delete', course)">
+    <UiButton v-if="canDelete" severity="danger" text rounded class="course-card-delete" :aria-label="`Удалить курс ${course.title}`" @click="emit('delete', course)">
       <Trash2 />
-    </PrimeButton>
+    </UiButton>
   </article>
 </template>

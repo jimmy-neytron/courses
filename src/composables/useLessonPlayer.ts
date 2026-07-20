@@ -15,19 +15,25 @@ export interface LessonPlayerSection {
 export function useLessonPlayer(lessonSource: MaybeRefOrGetter<Lesson>) {
   const store = useCourseStore()
   const progress = useLearningProgress()
-  const activeSectionId = ref<LessonSectionId>('theory')
+  const activeSectionId = ref<LessonSectionId>('content')
   const answers = ref<Record<string, number>>({})
   const completedSections = ref<string[]>([])
   const lesson = computed(() => toValue(lessonSource))
-
-  const sections = computed<LessonPlayerSection[]>(() => createLessonSectionConfig(lesson.value.sectionConfig)
+  const found = computed(() => store.findLesson(lesson.value.id))
+  const courseKind = computed(() => found.value?.course.kind ?? 'general')
+  const configuredSections = computed(() => createLessonSectionConfig(
+    lesson.value.sectionConfig,
+    courseKind.value,
+  ))
+  const sections = computed<LessonPlayerSection[]>(() => configuredSections.value
     .filter((section) => section.visible)
     .map((section) => ({
       ...section,
-      blocks: lesson.value.blocks.filter((block) => resolveLessonBlockSection(block) === section.id),
+      blocks: lesson.value.blocks.filter((block) => (
+        resolveLessonBlockSection(block, configuredSections.value, courseKind.value) === section.id
+      )),
     }))
     .filter((section) => section.blocks.length))
-
   const currentSection = computed(() => (
     sections.value.find((section) => section.id === activeSectionId.value) ?? sections.value[0]
   ))
@@ -35,7 +41,6 @@ export function useLessonPlayer(lessonSource: MaybeRefOrGetter<Lesson>) {
   const currentQuestions = computed(() => currentSection.value?.blocks.filter((block) => block.type === 'single_choice') ?? [])
   const answeredCount = computed(() => questions.value.filter((block) => answers.value[block.id] !== undefined).length)
   const correctCount = computed(() => questions.value.filter((block) => answers.value[block.id] === block.correctOption).length)
-  const found = computed(() => store.findLesson(lesson.value.id))
   const courseTitle = computed(() => found.value?.course.title ?? 'Учебный курс')
   const allLessons = computed(() => found.value?.course.modules.flatMap((module) => module.lessons) ?? [])
   const lessonIndex = computed(() => allLessons.value.findIndex((item) => item.id === lesson.value.id))
@@ -47,7 +52,7 @@ export function useLessonPlayer(lessonSource: MaybeRefOrGetter<Lesson>) {
   ))
 
   watch(lesson, (currentLesson) => {
-    activeSectionId.value = sections.value[0]?.id ?? 'theory'
+    activeSectionId.value = sections.value[0]?.id ?? 'content'
     answers.value = {}
     completedSections.value = [...progress.sections(currentLesson.id)]
   }, { immediate: true })

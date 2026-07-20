@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
-import Avatar from 'primevue/avatar'
-import { BookOpen, GraduationCap, LayoutDashboard, Plug, Settings } from 'lucide-vue-next'
+import { BookOpen, GraduationCap, LogOut, Plug, Settings } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 
 const auth = useAuthStore()
 const layout = useLayoutStore()
+const router = useRouter()
 const isDesktop = useMediaQuery('(min-width: 761px)')
 const navigation = [
-  { to: '/app', icon: LayoutDashboard, label: 'Обзор' },
   { to: '/app/courses', icon: BookOpen, label: 'Курсы' },
   { to: '/app/integrations', icon: Plug, label: 'Интеграции' },
 ]
@@ -25,22 +25,33 @@ const initials = computed(() => name.value
 watch(isDesktop, (desktop) => {
   if (desktop) layout.closeSidebar()
 })
+
+async function logout(): Promise<void> {
+  await auth.signOut()
+  layout.closeSidebar()
+  await router.replace('/auth')
+}
 </script>
 
 <template>
   <div v-if="layout.sidebarOpen" class="sidebar-overlay" @click="layout.closeSidebar" />
-  <aside :class="['sidebar', layout.sidebarOpen && 'is-open']">
-    <div class="brand"><span class="brand-mark"><GraduationCap :size="22" /></span><strong>Курсор</strong></div>
+  <aside :class="['sidebar workspace-sidebar', layout.sidebarOpen && 'is-open']">
+    <RouterLink to="/app" class="brand workspace-brand" @click="layout.closeSidebar">
+      <span class="brand-mark"><GraduationCap :size="21" /></span>
+      <span><strong>Курсор</strong><small>Course studio</small></span>
+    </RouterLink>
+    <p class="sidebar-label">Рабочее пространство</p>
     <nav>
       <RouterLink v-for="item in navigation" :key="item.to" :to="item.to" @click="layout.closeSidebar">
-        <component :is="item.icon" :size="19" />{{ item.label }}
+        <component :is="item.icon" :size="18" /><span>{{ item.label }}</span>
       </RouterLink>
     </nav>
     <div class="sidebar-bottom">
-      <RouterLink to="/app/settings" @click="layout.closeSidebar"><Settings :size="19" />Настройки</RouterLink>
-      <div class="profile">
-        <Avatar :label="initials" shape="circle" />
-        <div><b>{{ name }}</b><small>{{ auth.organization?.role ?? 'Участник' }}</small></div>
+      <RouterLink to="/app/settings" @click="layout.closeSidebar"><Settings :size="18" /><span>Настройки</span></RouterLink>
+      <div class="sidebar-account">
+        <span class="sidebar-avatar" aria-hidden="true">{{ initials }}</span>
+        <div><b>{{ name }}</b><small>{{ auth.organization?.name ?? 'Личное пространство' }}</small></div>
+        <button aria-label="Выйти" title="Выйти" @click="logout"><LogOut /></button>
       </div>
     </div>
   </aside>

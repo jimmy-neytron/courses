@@ -39,7 +39,7 @@ const databaseBlockTypes: Partial<Record<BlockType, string>> = {
 
 export function createLessonBlock(id: string, type: BlockType): LessonBlock {
   const [title, content, extra = {}] = blockPresets[type]
-  return { id, type, title, content, required: true, ...extra }
+  return { id, type, title, content, required: true, schemaVersion: 1, ...extra }
 }
 
 export function toDatabaseBlockType(type: BlockType): string {

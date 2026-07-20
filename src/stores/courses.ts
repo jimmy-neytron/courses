@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-import type { BlockType, Course, CourseCreateInput, LessonSectionConfig } from '@/types/course'
+import type { BlockType, Course, CourseCreateInput, CourseModule, Lesson, LessonBlock, LessonSectionConfig } from '@/types/course'
 import { createLessonSectionConfig } from '@/composables/useCourseSections'
 import { useAuthStore } from '@/stores/auth'
 import { isSupabaseConfigured } from '@/services/supabase'
@@ -37,6 +37,58 @@ const demoCourses: Course[] = []
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
+}
+function duplicateTitle(title: string): string {
+  return `${title} — копия`
+}
+
+function localId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function duplicateBlockSource(source: LessonBlock, local = false): LessonBlock {
+  const block = structuredClone(source)
+  block.id = local ? localId('block') : ''
+  if (block.audioPath || block.audioUrl?.startsWith('blob:')) {
+    block.audioPath = undefined
+    block.audioUrl = undefined
+  }
+  if (block.filePath || block.fileUrl?.startsWith('blob:')) {
+    block.filePath = undefined
+    block.fileUrl = undefined
+    block.fileName = undefined
+    block.fileSize = undefined
+  }
+  return block
+}
+
+function duplicateLocalLesson(source: Lesson, title = source.title): Lesson {
+  return {
+    ...structuredClone(source),
+    id: localId('lesson'),
+    title,
+    status: 'Черновик',
+    sectionConfigBlockId: undefined,
+    blocks: source.blocks.map((block) => duplicateBlockSource(block, true)),
+  }
+}
+
+async function duplicateLessonRecords(
+  courseId: string,
+  moduleId: string,
+  source: Lesson,
+  position: number,
+  title = source.title,
+): Promise<string> {
+  const lessonId = await createLessonRecord(courseId, moduleId, title, position, source.duration)
+  for (const [index, sourceBlock] of source.blocks.entries()) {
+    const block = duplicateBlockSource(sourceBlock)
+    await createBlockRecord(courseId, lessonId, block.type, index, block)
+  }
+  if (source.sectionConfig?.length) {
+    await saveSectionConfigRecord({ courseId, lessonId, sections: structuredClone(source.sectionConfig) })
+  }
+  return lessonId
 }
 
 export const useCourseStore = defineStore('courses', () => {
@@ -250,6 +302,65 @@ export const useCourseStore = defineStore('courses', () => {
     await hydrate(true)
     return id
   }
+  async function duplicateLesson(courseId: string, moduleId: string, lessonId: string): Promise<string | undefined> {
+    const course = findCourse(courseId)
+    const module = course?.modules.find((item) => item.id === moduleId)
+    const lessonIndex = module?.lessons.findIndex((item) => item.id === lessonId) ?? -1
+    const source = lessonIndex >= 0 ? module?.lessons[lessonIndex] : undefined
+    if (!course || !module || !source || course.accessRole !== 'creator') return
+
+    const title = duplicateTitle(source.title)
+    if (!isSupabaseConfigured) {
+      const copy = duplicateLocalLesson(source, title)
+      module.lessons.splice(lessonIndex + 1, 0, copy)
+      return copy.id
+    }
+
+    const id = await duplicateLessonRecords(courseId, moduleId, source, module.lessons.length, title)
+    await hydrate(true)
+    const refreshedCourse = findCourse(courseId)
+    const refreshedModule = refreshedCourse?.modules.find((item) => item.id === moduleId)
+    const copyIndex = refreshedModule?.lessons.findIndex((item) => item.id === id) ?? -1
+    if (refreshedCourse && refreshedModule && copyIndex >= 0) {
+      const [copy] = refreshedModule.lessons.splice(copyIndex, 1)
+      if (copy) refreshedModule.lessons.splice(lessonIndex + 1, 0, copy)
+      await saveCourseOrder(refreshedCourse)
+    }
+    return id
+  }
+
+  async function duplicateModule(courseId: string, moduleId: string): Promise<string | undefined> {
+    const course = findCourse(courseId)
+    const moduleIndex = course?.modules.findIndex((item) => item.id === moduleId) ?? -1
+    const source = moduleIndex >= 0 ? course?.modules[moduleIndex] : undefined
+    if (!course || !source || course.accessRole !== 'creator') return
+
+    if (!isSupabaseConfigured) {
+      const copy: CourseModule = {
+        id: localId('module'),
+        title: duplicateTitle(source.title),
+        open: true,
+        lessons: source.lessons.map((lesson) => duplicateLocalLesson(lesson)),
+      }
+      course.modules.splice(moduleIndex + 1, 0, copy)
+      return copy.id
+    }
+
+    const copiedModuleId = await createModuleRecord(courseId, duplicateTitle(source.title), course.modules.length)
+    for (const [index, lesson] of source.lessons.entries()) {
+      await duplicateLessonRecords(courseId, copiedModuleId, lesson, index)
+    }
+    await hydrate(true)
+    const refreshedCourse = findCourse(courseId)
+    const copyIndex = refreshedCourse?.modules.findIndex((item) => item.id === copiedModuleId) ?? -1
+    if (refreshedCourse && copyIndex >= 0) {
+      const [copy] = refreshedCourse.modules.splice(copyIndex, 1)
+      if (copy) refreshedCourse.modules.splice(moduleIndex + 1, 0, copy)
+      await saveCourseOrder(refreshedCourse)
+    }
+    return copiedModuleId
+  }
+
   async function addBlock(lessonId: string, type: BlockType): Promise<void> {
     const found = findLesson(lessonId)
     if (!found) return
@@ -392,6 +503,8 @@ export const useCourseStore = defineStore('courses', () => {
     refreshJoinCode,
     addModule,
     addLesson,
+    duplicateLesson,
+    duplicateModule,
     addBlock,
     saveLesson,
     saveBlock,

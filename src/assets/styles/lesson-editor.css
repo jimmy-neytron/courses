@@ -162,7 +162,6 @@
 .palette-list > button:hover {
   border-color: #34734e;
   background: #14231a;
-  transform: translateY(-1px);
 }
 
 .palette-list > button > span {
@@ -636,7 +635,7 @@
     bottom: 0;
     width: min(350px, 94vw);
     display: block;
-    transform: translateX(105%);
+    transform: translateX(100%);
     border-left: 1px solid var(--border);
     box-shadow: -24px 0 70px #000b;
     transition: transform .2s ease;

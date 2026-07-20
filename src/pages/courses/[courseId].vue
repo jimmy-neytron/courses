@@ -30,6 +30,7 @@ const {
   moduleTitle,
   lessonTitle,
   orderSaving,
+  duplicatingId,
   deleting,
   saved,
   actionError,
@@ -38,6 +39,8 @@ const {
   createModule,
   openLessonDialog,
   createLesson,
+  duplicateLesson,
+  duplicateModule,
   saveSettings,
   publishCourse,
   deleteCourse,
@@ -53,7 +56,7 @@ const {
         <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @publish="publishCourse" @delete="deleteDialogOpen = true" @invite="inviteDialogOpen = true" />
         <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
         <CourseTabs v-if="canManage" v-model="tab" />
-        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" />
+        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" />
         <CourseOverview v-else-if="!canManage || tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
         <CourseSettingsForm v-else-if="canManage" :course="course" :saved="saved" @save="saveSettings" />
       </div>

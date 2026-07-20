@@ -2,13 +2,15 @@
 import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
-import { BookOpen, GraduationCap, LogOut, Plug, Settings } from 'lucide-vue-next'
+import { BookOpen, GraduationCap, LogOut, Plug, Search, Settings } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
+import { useCommandPalette } from '@/composables/useCommandPalette'
 
 const auth = useAuthStore()
 const layout = useLayoutStore()
 const router = useRouter()
+const commandPalette = useCommandPalette()
 const isDesktop = useMediaQuery('(min-width: 761px)')
 const navigation = [
   { to: '/app/courses', icon: BookOpen, label: 'Курсы' },
@@ -46,6 +48,7 @@ async function logout(): Promise<void> {
         <component :is="item.icon" :size="18" /><span>{{ item.label }}</span>
       </RouterLink>
     </nav>
+    <button class="sidebar-command" type="button" @click="commandPalette.show(); layout.closeSidebar()"><Search /><span>Быстрый поиск</span><kbd>Ctrl K</kbd></button>
     <div class="sidebar-bottom">
       <RouterLink to="/app/settings" @click="layout.closeSidebar"><Settings :size="18" /><span>Настройки</span></RouterLink>
       <div class="sidebar-account">

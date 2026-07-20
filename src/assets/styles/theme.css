@@ -106,10 +106,6 @@
     color: #03130b;
   }
 
-  .ui-button:not(:disabled):hover {
-    transform: translateY(-1px);
-  }
-
   .ui-button.is-secondary,
   .ui-button.is-outlined {
     background: #121a15;

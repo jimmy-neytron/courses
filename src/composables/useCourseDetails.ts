@@ -34,6 +34,7 @@ export function useCourseDetails() {
   const lessonTitle = ref('')
   const lessonModuleId = ref('')
   const orderSaving = ref(false)
+  const duplicatingId = ref('')
   const deleting = ref(false)
   const actionError = ref('')
   const deleteError = ref('')
@@ -83,6 +84,26 @@ export function useCourseDetails() {
       lessonDialogOpen.value = false
       if (id) await router.push(`/app/lessons/${id}/editor`)
     }, 'Не удалось создать урок')
+  }
+
+  async function duplicateLesson(moduleId: string, lessonId: string) {
+    if (!course.value || !canManage.value || duplicatingId.value) return
+    duplicatingId.value = lessonId
+    await run(async () => {
+      await store.duplicateLesson(course.value!.id, moduleId, lessonId)
+      showSaved()
+    }, 'Не удалось дублировать урок')
+    duplicatingId.value = ''
+  }
+
+  async function duplicateModule(moduleId: string) {
+    if (!course.value || !canManage.value || duplicatingId.value) return
+    duplicatingId.value = moduleId
+    await run(async () => {
+      await store.duplicateModule(course.value!.id, moduleId)
+      showSaved()
+    }, 'Не удалось дублировать модуль')
+    duplicatingId.value = ''
   }
 
   async function saveSettings() {
@@ -148,6 +169,7 @@ export function useCourseDetails() {
     moduleTitle,
     lessonTitle,
     orderSaving,
+    duplicatingId,
     deleting,
     saved,
     actionError,
@@ -156,6 +178,8 @@ export function useCourseDetails() {
     createModule,
     openLessonDialog,
     createLesson,
+    duplicateLesson,
+    duplicateModule,
     saveSettings,
     publishCourse,
     deleteCourse,

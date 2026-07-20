@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { BookOpen, LogIn, Plus, Search } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
@@ -29,6 +31,17 @@ const {
   openDeleteDialog,
   confirmDelete,
 } = useCoursesPage()
+
+const route = useRoute()
+const router = useRouter()
+watch(() => route.query.create, (value) => {
+  if (value === '1') createDialogOpen.value = true
+}, { immediate: true })
+
+function closeCreateDialog(): void {
+  createDialogOpen.value = false
+  if (route.query.create) void router.replace({ query: { ...route.query, create: undefined } })
+}
 </script>
 
 <template>
@@ -43,7 +56,7 @@ const {
       </section>
 
       <section class="catalog-controls is-compact">
-        <label class="catalog-search"><Search /><UiInput v-model="query" placeholder="Найти курс" /></label>
+        <label class="catalog-search"><Search /><UiInput v-model="query" placeholder="Найти курс" aria-label="Поиск курсов" /></label>
         <UiSegmented v-model="access" :options="accessOptions" :allow-empty="false" aria-label="Доступ к курсам" />
         <UiSegmented v-model="status" :options="statusOptions" :allow-empty="false" aria-label="Статус курса" />
       </section>
@@ -58,7 +71,7 @@ const {
         <UiButton v-if="!query" @click="createDialogOpen = true"><Plus />Создать курс</UiButton>
       </section>
 
-      <CourseCreateDialog v-if="createDialogOpen" @close="createDialogOpen = false" @create="createCourse" />
+      <CourseCreateDialog v-if="createDialogOpen" @close="closeCreateDialog" @create="createCourse" />
       <CourseJoinDialog v-if="joinDialogOpen" :pending="joining" :error="joinError" @close="joinDialogOpen = false" @join="joinCourse" />
       <CourseDeleteDialog
         v-if="selectedForDelete"

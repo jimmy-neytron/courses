@@ -77,9 +77,13 @@ export async function createCourseRecord(
   return String(data.id)
 }
 
-export async function createModuleRecord(courseId: string, title: string, position: number): Promise<void> {
-  const { error } = await requireSupabase().from('course_modules').insert({ course_id: courseId, title, position })
+export async function createModuleRecord(courseId: string, title: string, position: number): Promise<string> {
+  const { data, error } = await requireSupabase().from('course_modules')
+    .insert({ course_id: courseId, title, position })
+    .select('id')
+    .single()
   if (error) throw error
+  return String(data.id)
 }
 
 export async function createLessonRecord(
@@ -106,19 +110,22 @@ export async function createBlockRecord(
   lessonId: string,
   type: BlockType,
   position: number,
-): Promise<void> {
-  const block = createLessonBlock('', type)
-  const { error } = await requireSupabase().from('lesson_blocks').insert({
+  source?: LessonBlock,
+): Promise<string> {
+  const block = source ? structuredClone(source) : createLessonBlock('', type)
+  const { data, error } = await requireSupabase().from('lesson_blocks').insert({
     course_id: courseId,
     lesson_id: lessonId,
     block_type: toDatabaseBlockType(type),
     title: block.title,
     public_content: serializePublicBlockContent(block),
     private_content: serializePrivateBlockContent(block),
+    is_required: block.required,
     position,
     schema_version: block.schemaVersion ?? 1,
-  })
+  }).select('id').single()
   if (error) throw error
+  return String(data.id)
 }
 
 export async function updateLessonRecord(lessonId: string, lesson: Lesson): Promise<void> {

@@ -1,0 +1,252 @@
+.engine-player {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 54px) clamp(14px, 5vw, 72px) 72px;
+}
+
+.engine-lesson-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.engine-lesson-header > div:first-child {
+  min-width: 0;
+}
+
+.engine-lesson-header .eyebrow {
+  color: var(--app-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.engine-lesson-header h1 {
+  max-width: 780px;
+  margin: 9px 0 11px;
+  font-size: clamp(30px, 5vw, 48px);
+  line-height: 1.06;
+  letter-spacing: -0.045em;
+}
+
+.engine-lesson-header p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--app-muted-strong);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.engine-complete {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+}
+
+.engine-progress-status {
+  display: grid;
+  min-width: 72px;
+  justify-items: end;
+  gap: 2px;
+  flex: none;
+}
+
+.engine-progress-status span {
+  color: var(--app-accent-hover);
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.engine-progress-status small {
+  color: var(--app-muted);
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.engine-objectives {
+  margin-bottom: 24px;
+  padding: 17px 19px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgb(var(--app-accent-rgb) / 7%), transparent 65%),
+    var(--app-surface);
+}
+
+.engine-objectives > small {
+  color: var(--app-accent-hover);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.engine-objectives ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.engine-objectives li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--app-text-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.engine-objectives li svg {
+  margin-top: 2px;
+  flex: none;
+  color: var(--app-accent);
+}
+
+.engine-lesson-body {
+  display: grid;
+  gap: 16px;
+}
+
+.engine-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+.engine-section-title > svg {
+  box-sizing: content-box;
+  padding: 8px;
+  flex: none;
+  border-radius: 10px;
+  color: var(--app-accent);
+  background: var(--app-accent-soft);
+}
+
+.engine-section-title > div {
+  display: grid;
+  gap: 2px;
+}
+
+.engine-section-title small {
+  color: var(--app-muted);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.engine-section-title h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.engine-section-title > span {
+  margin-left: auto;
+  color: var(--app-muted);
+  font-size: 10px;
+}
+
+.engine-section-complete {
+  justify-self: start;
+  margin-top: 2px;
+}
+
+.engine-lesson-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin-top: 36px;
+  padding-top: 23px;
+  border-top: 1px solid var(--app-border);
+}
+
+.engine-lesson-footer > a {
+  min-width: 0;
+  text-decoration: none;
+}
+
+.engine-lesson-footer > a:last-of-type {
+  justify-self: end;
+}
+
+.engine-lesson-footer > a :deep(.cui-button) {
+  max-width: 100%;
+}
+
+.engine-lesson-footer > a :deep(.cui-button__content) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.engine-course-end {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 6px;
+  color: var(--app-muted);
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .engine-player {
+    padding: 28px 14px 54px;
+  }
+
+  .engine-lesson-header {
+    flex-direction: column;
+  }
+
+  .engine-progress-status {
+    justify-items: start;
+  }
+
+  .engine-lesson-footer {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .engine-lesson-footer > :nth-child(2) {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  .engine-course-end {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 520px) {
+  .engine-section-title > span {
+    display: none;
+  }
+
+  .engine-lesson-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .engine-lesson-footer > :nth-child(2) {
+    grid-column: 1;
+  }
+
+  .engine-lesson-footer > a,
+  .engine-lesson-footer > a:last-of-type,
+  .engine-course-end {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .engine-lesson-footer > a :deep(.cui-button) {
+    width: 100%;
+    justify-content: center;
+  }
+}

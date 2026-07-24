@@ -1,0 +1,26 @@
+.form-field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--app-text-soft);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.form-field__label {
+  line-height: 1.35;
+}
+
+.form-field--wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 680px) {
+  .form-field__label {
+  line-height: 1.35;
+}
+
+.form-field--wide {
+    grid-column: auto;
+  }
+}

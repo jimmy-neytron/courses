@@ -1,0 +1,32 @@
+.confirm-dialog__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.confirm-dialog__content p {
+  margin: 0;
+}
+
+.confirm-dialog__icon {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgb(255 113 138 / 28%);
+  border-radius: 12px;
+  color: var(--app-danger);
+  background: var(--app-danger-soft);
+}
+
+.danger-action {
+  color: #ffd5dd;
+  border-color: rgb(255 113 138 / 28%);
+  background: var(--app-danger-soft);
+}
+
+.danger-action:hover {
+  border-color: rgb(255 113 138 / 48%);
+  background: rgb(255 113 138 / 18%);
+}

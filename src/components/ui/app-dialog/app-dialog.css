@@ -1,0 +1,111 @@
+:global(body.has-dialog) {
+  overflow: hidden;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  place-items: center;
+  padding: 24px;
+  background: rgb(2 3 5 / 76%);
+  backdrop-filter: blur(12px) saturate(80%);
+}
+
+.dialog-card {
+  width: min(var(--dialog-max-width, 720px), 100%);
+  overflow: visible;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 94% 0%, rgb(var(--app-accent-rgb) / 10%), transparent 31%),
+    var(--app-surface-elevated);
+  box-shadow: var(--app-shadow-lg);
+}
+
+.dialog-card :deep(.cui-card__body) {
+  padding: 0;
+}
+
+.dialog-card__header,
+.dialog-card__footer {
+  display: flex;
+}
+
+.dialog-card__header,
+.dialog-card__body,
+.dialog-card__footer {
+  padding: 21px 23px;
+}
+
+.dialog-card__header {
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.dialog-card__header h2 {
+  margin-bottom: 0;
+}
+
+.dialog-card__body {
+  display: grid;
+  gap: 16px;
+}
+
+.dialog-card__footer {
+  justify-content: flex-end;
+  gap: 9px;
+  border-top: 1px solid var(--app-border);
+  background: rgb(0 0 0 / 10%);
+}
+
+.dialog-close {
+  flex: 0 0 auto;
+  width: 36px;
+  min-width: 36px;
+  padding-inline: 0;
+}
+
+.dialog-fade-enter-active,
+.dialog-fade-leave-active {
+  transition: opacity 170ms ease;
+}
+
+.dialog-fade-enter-active .dialog-card,
+.dialog-fade-leave-active .dialog-card {
+  transition: opacity 170ms ease, transform 170ms ease;
+}
+
+.dialog-fade-enter-from,
+.dialog-fade-leave-to {
+  opacity: 0;
+}
+
+.dialog-fade-enter-from .dialog-card,
+.dialog-fade-leave-to .dialog-card {
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+}
+
+@media (max-width: 760px) {
+  .dialog-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .dialog-card {
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+  }
+}
+
+@media (max-width: 430px) {
+  .dialog-card__header,
+  .dialog-card__body,
+  .dialog-card__footer {
+    padding-inline: 17px;
+  }
+}

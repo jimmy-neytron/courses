@@ -1,0 +1,138 @@
+.engine-card {
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgb(var(--app-accent-rgb) / 4%), transparent 44%),
+    var(--app-surface);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.engine-card > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+
+.engine-card > header > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  flex: none;
+  border-radius: 12px;
+  color: var(--app-accent);
+  background: var(--app-accent-soft);
+}
+
+.engine-card > header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.engine-card header small {
+  color: var(--app-accent-hover);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.engine-card h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.engine-card header p {
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.translation-practice blockquote {
+  margin: 0 0 14px;
+  padding: 18px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 13px;
+  background: var(--app-bg-elevated);
+  color: var(--app-text);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.engine-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.engine-actions > span {
+  margin-right: auto;
+  color: var(--app-muted);
+  font-size: 11px;
+}
+
+.engine-feedback {
+  display: flex;
+  gap: 12px;
+  margin-top: 17px;
+  padding: 17px;
+  border: 1px solid var(--app-accent-border);
+  border-radius: 13px;
+  background: var(--app-accent-soft);
+}
+
+.engine-feedback > svg {
+  flex: none;
+  color: var(--app-accent);
+}
+
+.engine-feedback b {
+  font-size: 12px;
+}
+
+.engine-feedback p {
+  margin: 7px 0 0;
+  color: var(--app-text-soft);
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.translation-questions {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 3%);
+}
+
+.translation-questions b {
+  font-size: 12px;
+}
+
+.translation-questions ol {
+  margin-bottom: 0;
+  padding-left: 20px;
+  color: var(--app-muted-strong);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+@media (max-width: 640px) {
+  .engine-card {
+    padding: 18px;
+  }
+
+  .engine-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .engine-actions > span {
+    margin: 0;
+  }
+}

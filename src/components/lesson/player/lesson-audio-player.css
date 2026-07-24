@@ -1,0 +1,118 @@
+.lesson-audio-player {
+  margin: 0;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid var(--app-border-strong);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgb(var(--app-accent-rgb) / 6%), transparent 42%),
+    var(--app-surface);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.lesson-audio-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.lesson-audio-heading > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  flex: none;
+  border-radius: 11px;
+  color: var(--app-accent-hover);
+  background: var(--app-accent-soft);
+}
+
+.lesson-audio-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.lesson-audio-heading small {
+  color: var(--app-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lesson-audio-heading strong {
+  font-size: 15px;
+}
+
+.lesson-audio-player audio {
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 8px 0;
+  color-scheme: dark;
+}
+
+.lesson-audio-tts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-bg-elevated);
+}
+
+.lesson-audio-tts span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--app-muted);
+  font-size: 11px;
+}
+
+.lesson-audio-restart {
+  margin-top: 10px;
+}
+
+.lesson-audio-empty,
+.lesson-audio-error {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.lesson-audio-empty {
+  color: var(--app-muted);
+}
+
+.lesson-audio-error {
+  color: var(--app-danger);
+}
+
+.lesson-audio-player details {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--app-border);
+}
+
+.lesson-audio-player summary {
+  cursor: pointer;
+  color: var(--app-accent-hover);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lesson-audio-player details p {
+  margin: 10px 0 0;
+  color: var(--app-text-soft);
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .lesson-audio-tts {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

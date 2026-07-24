@@ -1,0 +1,42 @@
+/* Notifications */
+.notification-stack {
+  position: fixed;
+  z-index: 200;
+  right: 20px;
+  bottom: 20px;
+  display: grid;
+  width: min(390px, calc(100vw - 40px));
+  gap: 9px;
+}
+
+.notification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 11px 12px 15px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 12px;
+  background: rgb(var(--app-surface-elevated-rgb) / 96%);
+  box-shadow: var(--app-shadow);
+  font-size: 13px;
+  font-weight: 650;
+  backdrop-filter: blur(18px);
+}
+
+.notification[data-tone='success'] {
+  border-color: rgb(52 211 153 / 40%);
+  background: linear-gradient(90deg, var(--app-success-soft), rgb(var(--app-surface-elevated-rgb) / 96%) 34%);
+}
+
+.notification[data-tone='danger'] {
+  border-color: rgb(255 113 138 / 38%);
+  background: linear-gradient(90deg, var(--app-danger-soft), rgb(var(--app-surface-elevated-rgb) / 96%) 34%);
+}
+
+.notification__close {
+  flex: 0 0 auto;
+  width: 32px;
+  min-width: 32px;
+  padding-inline: 0;
+}

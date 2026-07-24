@@ -1,0 +1,9 @@
+.eyebrow-text {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--app-accent-hover);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}

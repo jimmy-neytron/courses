@@ -1,0 +1,47 @@
+.engine-section-nav {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 30px;
+  padding: 6px;
+  overflow-x: auto;
+  border: 1px solid var(--app-border);
+  border-radius: 15px;
+  background: var(--app-surface);
+  scrollbar-width: none;
+}
+
+.engine-section-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.engine-section-nav__button {
+  min-width: max-content;
+  min-height: 44px;
+  color: var(--app-muted);
+}
+
+.engine-section-nav__button:hover {
+  color: var(--app-text);
+  background: rgb(255 255 255 / 4%);
+}
+
+.engine-section-nav__button.active {
+  color: var(--app-text);
+  background: var(--app-surface-hover);
+  box-shadow: inset 0 0 0 1px var(--app-border-strong);
+}
+
+.engine-section-nav__button.done {
+  color: var(--app-accent-hover);
+}
+
+.section-check {
+  flex: none;
+  color: var(--app-accent);
+}
+
+@media (max-width: 760px) {
+  .engine-section-nav__button {
+    flex: 0 0 auto;
+  }
+}

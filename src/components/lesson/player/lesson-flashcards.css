@@ -1,0 +1,119 @@
+.engine-card {
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgb(var(--app-accent-rgb) / 4%), transparent 44%),
+    var(--app-surface);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.engine-card > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+
+.engine-card > header > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  flex: none;
+  border-radius: 12px;
+  color: var(--app-accent);
+  background: var(--app-accent-soft);
+}
+
+.engine-card > header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.engine-card header small {
+  color: var(--app-accent-hover);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.engine-card h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.engine-card header p {
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.flashcard {
+  width: 100%;
+  min-height: 290px;
+  border: 1px solid var(--app-accent-border);
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 50% 10%, rgb(var(--app-accent-rgb) / 20%), transparent 45%),
+    var(--app-bg-elevated);
+  color: var(--app-text);
+}
+
+.flashcard__content {
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 240px;
+  padding: 30px;
+  text-align: center;
+}
+
+.flashcard__content small {
+  color: var(--app-accent-hover);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.flashcard__content strong {
+  font-size: clamp(25px, 5vw, 43px);
+  white-space: normal;
+}
+
+.flashcard__content > span {
+  color: var(--app-muted);
+  font-size: 11px;
+  white-space: normal;
+}
+
+.flashcard-empty {
+  color: var(--app-muted);
+}
+
+.engine-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+@media (max-width: 640px) {
+  .engine-card {
+    padding: 18px;
+  }
+
+  .engine-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .engine-actions > :first-child {
+    grid-column: 1 / -1;
+  }
+}

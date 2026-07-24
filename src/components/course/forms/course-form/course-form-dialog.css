@@ -1,0 +1,21 @@
+.course-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.color-control {
+  width: 100%;
+}
+
+.color-control :deep(input[type='color']) {
+  min-height: 40px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .course-form {
+    grid-template-columns: 1fr;
+  }
+}

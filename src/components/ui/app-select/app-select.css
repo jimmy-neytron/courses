@@ -1,0 +1,99 @@
+.app-select {
+  position: relative;
+  min-width: 0;
+}
+
+.app-select__trigger {
+  width: 100%;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.app-select__trigger > span,
+.app-select__trigger :deep(.cui-button__content) {
+  min-width: 0;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.app-select__placeholder {
+  color: var(--app-muted);
+}
+
+.app-select__chevron {
+  transition: transform 160ms ease;
+}
+
+.app-select__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.app-select__menu {
+  position: absolute;
+  z-index: 150;
+  top: calc(100% + 7px);
+  right: 0;
+  left: 0;
+  max-height: 288px;
+  overflow-y: auto;
+  border-color: var(--app-border-strong);
+  border-radius: 13px;
+  background: rgb(var(--app-surface-elevated-rgb) / 98%);
+  box-shadow: var(--app-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.app-select__menu > :deep(.cui-card__body) {
+  display: grid;
+  gap: 3px;
+  padding: 6px;
+}
+
+.app-select__option {
+  width: 100%;
+  min-height: 42px;
+  justify-content: space-between;
+  padding-inline: 10px;
+  text-align: left;
+}
+
+.app-select__option.is-selected {
+  color: var(--app-accent-hover);
+  background: var(--app-accent-soft);
+}
+
+.app-select__option-copy {
+  display: block;
+  min-width: 0;
+  flex: 1;
+}
+
+.app-select__option-copy strong,
+.app-select__option-copy small {
+  display: block;
+}
+
+.app-select__option-copy small {
+  margin-top: 3px;
+  color: var(--app-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.select-popover-enter-active,
+.select-popover-leave-active {
+  transition: opacity 140ms ease, transform 140ms ease;
+  transform-origin: top center;
+}
+
+.select-popover-enter-from,
+.select-popover-leave-to {
+  opacity: 0;
+  transform: translateY(-5px) scale(0.985);
+}
+
+@media (max-width: 760px) {
+  .app-select__menu {
+    max-height: 240px;
+  }
+}

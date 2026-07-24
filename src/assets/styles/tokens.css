@@ -1,0 +1,70 @@
+:root,
+[data-cui-theme='dark'] {
+  color-scheme: dark;
+
+  --app-bg-rgb: 9 14 12;
+  --app-surface-rgb: 15 23 19;
+  --app-surface-elevated-rgb: 20 31 25;
+  --app-accent-rgb: 0 220 130;
+
+  --app-bg: #090e0c;
+  --app-bg-elevated: #0c1310;
+  --app-surface: #0f1713;
+  --app-surface-elevated: #141f19;
+  --app-surface-muted: #19271f;
+  --app-surface-hover: #203128;
+  --app-border: rgb(190 255 220 / 9%);
+  --app-border-strong: rgb(190 255 220 / 16%);
+  --app-text: #f2fff8;
+  --app-text-soft: #cce8da;
+  --app-muted: #829b8e;
+  --app-muted-strong: #a7bcae;
+
+  --app-accent: #00dc82;
+  --app-accent-hover: #1de592;
+  --app-accent-active: #00bd6f;
+  --app-accent-contrast: #03150d;
+  --app-accent-soft: rgb(var(--app-accent-rgb) / 14%);
+  --app-accent-border: rgb(var(--app-accent-rgb) / 34%);
+
+  --app-success: #34d399;
+  --app-success-soft: rgb(52 211 153 / 14%);
+  --app-warning: #fb7a3c;
+  --app-warning-soft: rgb(251 122 60 / 14%);
+  --app-danger: #ff718a;
+  --app-danger-soft: rgb(255 113 138 / 12%);
+
+  --app-shadow-sm: 0 10px 30px rgb(0 0 0 / 22%);
+  --app-shadow: 0 22px 70px rgb(0 0 0 / 38%);
+  --app-shadow-lg: 0 36px 120px rgb(0 0 0 / 56%);
+
+  --cui-color-background: var(--app-bg);
+  --cui-color-surface: var(--app-surface);
+  --cui-color-surface-hover: var(--app-surface-hover);
+  --cui-color-text: var(--app-text);
+  --cui-color-text-muted: var(--app-muted);
+  --cui-color-border: var(--app-border);
+  --cui-color-primary: var(--app-accent);
+  --cui-color-primary-hover: var(--app-accent-hover);
+  --cui-color-primary-subtle: var(--app-accent-soft);
+  --cui-color-primary-foreground: var(--app-accent-contrast);
+  --cui-color-on-primary: var(--app-accent-contrast);
+  --cui-color-success: var(--app-success);
+  --cui-color-warning: var(--app-warning);
+  --cui-color-danger: var(--app-danger);
+  --cui-color-focus: rgb(var(--app-accent-rgb) / 52%);
+  --cui-color-ring: rgb(var(--app-accent-rgb) / 52%);
+
+  --cui-radius-sm: 8px;
+  --cui-radius-md: 11px;
+  --cui-radius-lg: 16px;
+  --cui-control-height-sm: 34px;
+  --cui-control-height-md: 40px;
+  --cui-control-height-lg: 46px;
+  --cui-button-radius: 10px;
+  --cui-input-background: #0c1410;
+  --cui-input-border-color: var(--app-border-strong);
+  --cui-input-focus-border-color: var(--app-accent);
+  --cui-shadow-sm: var(--app-shadow-sm);
+  --cui-shadow-md: var(--app-shadow);
+}

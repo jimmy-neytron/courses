@@ -1,0 +1,11 @@
+.page-container {
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding: 46px clamp(24px, 4vw, 62px) 76px;
+}
+
+@media (max-width: 760px) {
+  .page-container {
+    padding: 29px 16px 54px;
+  }
+}

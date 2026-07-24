@@ -1,0 +1,38 @@
+.page-state {
+  display: grid;
+  min-height: 340px;
+  place-items: center;
+  align-content: center;
+  padding: 36px;
+  border: 1px dashed var(--app-border-strong);
+  border-radius: 20px;
+  text-align: center;
+  background: linear-gradient(145deg, rgb(255 255 255 / 2.5%), rgb(255 255 255 / 1%));
+}
+
+.page-state[data-size='compact'] {
+  min-height: 330px;
+}
+
+.page-state[data-size='viewport'] {
+  min-height: min(620px, calc(100vh - 160px));
+}
+
+.page-state__icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid var(--app-accent-border);
+  border-radius: 14px;
+  color: var(--app-accent);
+  background: var(--app-accent-soft);
+}
+
+.page-state h1 {
+  margin: 18px 0 8px;
+}
+
+.page-state p {
+  max-width: 520px;
+}

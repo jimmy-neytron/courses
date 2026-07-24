@@ -1,16 +1,28 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, BookOpen } from 'lucide-vue-next'
-import { useCourseStore } from '@/stores/courses'
+
+import { useCoursesStore } from '@/stores/courses'
 import LessonPlayer from '@/components/lesson/LessonPlayer.vue'
-import FullscreenLayout from '@/layouts/fullscreen.vue'
-const route=useRoute(),store=useCourseStore()
-const found=computed(()=>store.findLesson(String(route.params.lessonId)))
+import { LoadingSkeleton, PageState } from '@/components/ui'
+
+const route = useRoute()
+const courses = useCoursesStore()
+const lesson = computed(() => courses.lessonById(String(route.params.lessonId)))
+const isAuthorPreview = computed(() => route.query.mode === 'author')
+const visibleLesson = computed(() => (
+  lesson.value && (lesson.value.status === 'published' || isAuthorPreview.value)
+    ? lesson.value
+    : undefined
+))
+onMounted(() => loadLesson())
+async function loadLesson(force = false): Promise<void> { try { await courses.load(force) } catch {} }
 </script>
+
 <template>
-  <FullscreenLayout>
-    <div v-if="found" class="engine-single-preview"><header class="engine-single-topbar"><RouterLink :to="`/preview/courses/${found.course.id}`"><ArrowLeft />К программе курса</RouterLink><div><b>Режим прохождения</b><small>{{ found.course.title }}</small></div></header><LessonPlayer :lesson="found.lesson" /></div>
-    <section v-else class="empty-state"><BookOpen /><h2>Урок не найден</h2><p v-if="store.loadError">{{ store.loadError }}</p><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
-  </FullscreenLayout>
+  <LoadingSkeleton v-if="!courses.loaded || courses.loading" variant="preview" />
+  <LessonPlayer v-else-if="visibleLesson" :lesson="visibleLesson" :author-preview="isAuthorPreview" />
+  <PageState v-else-if="lesson && lesson.status !== 'published'" size="viewport" title="Урок находится в черновике" description="Он скрыт из предпросмотра курса. Откройте авторский предпросмотр из редактора урока." />
+  <PageState v-else-if="courses.error" size="viewport" title="Не удалось загрузить урок" :description="courses.error" action-label="Повторить" retry @action="loadLesson(true)" />
+  <PageState v-else size="viewport" title="Урок не найден" description="Возможно, он был удалён или ссылка больше не актуальна." />
 </template>

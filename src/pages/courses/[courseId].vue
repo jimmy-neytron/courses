@@ -1,99 +1,183 @@
 <script setup lang="ts">
-import { AlertTriangle, ArrowLeft, BookOpen, Trash2 } from 'lucide-vue-next'
-import UiButton from '@/components/ui/UiButton.vue'
-import UiInput from '@/components/ui/UiInput.vue'
-import DefaultLayout from '@/layouts/default.vue'
-import AppModal from '@/components/AppModal.vue'
-import FormField from '@/components/common/FormField.vue'
-import CourseCurriculum from '@/components/course/CourseCurriculum.vue'
-import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
-import CourseHero from '@/components/course/CourseHero.vue'
-import CourseInviteDialog from '@/components/course/CourseInviteDialog.vue'
-import CourseOverview from '@/components/course/CourseOverview.vue'
-import CourseSettingsForm from '@/components/course/CourseSettingsForm.vue'
-import CourseTabs from '@/components/course/CourseTabs.vue'
-import { useCourseDetails } from '@/composables/useCourseDetails'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Edit3, Eye, Plus, Send, Trash2 } from 'lucide-vue-next'
+import { UiBadge } from '@neytron/compact-ui/badge'
+import { UiButton } from '@neytron/compact-ui/button'
 
-const {
-  course,
-  canManage,
-  modules,
-  totalLessons,
-  totalMinutes,
-  tab,
-  moduleDialogOpen,
-  lessonDialogOpen,
-  deleteDialogOpen,
-  deleteLessonsDialogOpen,
-  inviteDialogOpen,
-  inviteRefreshing,
-  inviteError,
-  moduleTitle,
-  lessonTitle,
-  orderSaving,
-  duplicatingId,
-  deleting,
-  deletingLessons,
-  selectionMode,
-  selectedLessonIds,
-  saved,
-  actionError,
-  deleteError,
-  persistOrder,
-  createModule,
-  openLessonDialog,
-  createLesson,
-  duplicateLesson,
-  duplicateModule,
-  toggleSelectionMode,
-  toggleLessonSelection,
-  toggleModuleLessons,
-  requestDeleteSelectedLessons,
-  deleteSelectedLessons,
-  saveSettings,
-  publishCourse,
-  deleteCourse,
-  refreshInviteCode,
-} = useCourseDetails()
+import { courseStatusLabel } from '@/constants/course-labels'
+import { useCoursesStore } from '@/stores/courses'
+import type { CourseDraft, LessonDraft, ModuleDraft } from '@/types/course'
+import { CurriculumModuleCard } from '@/components/course'
+import CourseFormDialog from '@/components/course/forms/course-form/CourseFormDialog.vue'
+import LessonFormDialog from '@/components/course/forms/lesson-form/LessonFormDialog.vue'
+import ModuleFormDialog from '@/components/course/forms/module-form/ModuleFormDialog.vue'
+import { getErrorMessage } from '@/utils/error'
+import { pluralize } from '@/utils/text'
+import { useNotificationsStore } from '@/stores/notifications'
+import { ConfirmDialog, LoadingSkeleton, PageContainer, PageState, SectionHeading } from '@/components/ui'
+import { useDeleteTarget } from '@/composables/useDeleteTarget'
+
+const route = useRoute()
+const router = useRouter()
+const courses = useCoursesStore()
+const notifications = useNotificationsStore()
+const courseId = computed(() => String(route.params.courseId))
+const course = computed(() => courses.courseById(courseId.value))
+const editCourseOpen = ref(false)
+const moduleDialogOpen = ref(false)
+const lessonDialogOpen = ref(false)
+const selectedModuleId = ref('')
+const saving = ref(false)
+const deleting = ref(false)
+const deleteTarget = useDeleteTarget()
+
+const courseDraft = computed<CourseDraft | undefined>(() => course.value ? ({
+  title: course.value.title,
+  description: course.value.description,
+  languageCode: course.value.languageCode,
+  sourceLevel: course.value.sourceLevel,
+  targetLevel: course.value.targetLevel,
+  durationWeeks: course.value.durationWeeks,
+  lessonsPerWeek: course.value.lessonsPerWeek,
+  defaultLessonDuration: course.value.defaultLessonDuration,
+  accentColor: course.value.accentColor,
+  visibility: course.value.visibility,
+  isSequential: course.value.isSequential,
+}) : undefined)
+const lessonCount = computed(() => course.value?.modules.reduce((total, module) => total + module.lessons.length, 0) ?? 0)
+const completedLessonCount = computed(() => course.value?.modules.reduce(
+  (total, module) => total + module.lessons.filter((lesson) => lesson.isCompleted).length,
+  0,
+) ?? 0)
+
+onMounted(() => loadCourse())
+
+async function loadCourse(force = false): Promise<void> {
+  try { await courses.load(force) }
+  catch (error) { notifications.push(getErrorMessage(error, 'Не удалось загрузить курс'), 'danger') }
+}
+
+async function saveCourse(draft: CourseDraft): Promise<void> {
+  saving.value = true
+  try {
+    await courses.updateCourse(courseId.value, draft)
+    editCourseOpen.value = false
+    notifications.push('Настройки курса сохранены', 'success')
+  } catch (error) { notifications.push(getErrorMessage(error, 'Не удалось сохранить курс'), 'danger') }
+  finally { saving.value = false }
+}
+
+async function createModule(draft: ModuleDraft): Promise<void> {
+  saving.value = true
+  try {
+    await courses.createModule(courseId.value, draft)
+    moduleDialogOpen.value = false
+    notifications.push('Модуль добавлен', 'success')
+  } catch (error) { notifications.push(getErrorMessage(error, 'Не удалось добавить модуль'), 'danger') }
+  finally { saving.value = false }
+}
+
+function openLessonDialog(moduleId: string): void {
+  selectedModuleId.value = moduleId
+  lessonDialogOpen.value = true
+}
+
+async function createLesson(draft: LessonDraft): Promise<void> {
+  saving.value = true
+  try {
+    const lesson = await courses.createLesson(courseId.value, selectedModuleId.value, draft)
+    lessonDialogOpen.value = false
+    notifications.push('Урок добавлен', 'success')
+    await router.push({ name: 'lesson-editor', params: { lessonId: lesson.id } })
+  } catch (error) { notifications.push(getErrorMessage(error, 'Не удалось добавить урок'), 'danger') }
+  finally { saving.value = false }
+}
+
+async function publish(): Promise<void> {
+  if (!course.value) return
+  try {
+    await courses.publishCourse(course.value.id)
+    notifications.push('Курс опубликован', 'success')
+  } catch (error) { notifications.push(getErrorMessage(error, 'Не удалось опубликовать курс'), 'danger') }
+}
+
+async function setLessonCompleted(lessonId: string, isCompleted: boolean): Promise<void> {
+  try {
+    await courses.setLessonCompleted(lessonId, isCompleted)
+  } catch (error) {
+    notifications.push(getErrorMessage(error, 'Не удалось изменить прогресс урока'), 'danger')
+  }
+}
+
+async function confirmDelete(): Promise<void> {
+  const target = deleteTarget.target.value
+  if (!target) return
+  deleting.value = true
+  try {
+    if (target.kind === 'course') {
+      await courses.deleteCourse(target.id)
+      notifications.push('Курс удалён', 'success')
+      deleteTarget.clear()
+      await router.replace({ name: 'courses' })
+      return
+    }
+    if (target.kind === 'module') await courses.deleteModule(courseId.value, target.id)
+    else await courses.deleteLesson(target.id)
+    notifications.push(target.kind === 'module' ? 'Модуль удалён' : 'Урок удалён', 'success')
+    deleteTarget.clear()
+  } catch (error) { notifications.push(getErrorMessage(error, 'Не удалось удалить элемент'), 'danger') }
+  finally { deleting.value = false }
+}
 </script>
 
 <template>
-  <DefaultLayout>
-    <template v-if="course">
-      <div class="product-course">
-        <div class="product-breadcrumb"><RouterLink to="/app/courses"><ArrowLeft />Курсы</RouterLink><span>/</span><span>{{ course.title }}</span></div>
-        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @publish="publishCourse" @delete="deleteDialogOpen = true" @invite="inviteDialogOpen = true" />
-        <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
-        <CourseTabs v-if="canManage" v-model="tab" />
-        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" :selection-mode="selectionMode" :selected-lesson-ids="selectedLessonIds" :deleting-lessons="deletingLessons" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" @toggle-selection-mode="toggleSelectionMode" @toggle-lesson="toggleLessonSelection" @toggle-module-lessons="toggleModuleLessons" @delete-selected="requestDeleteSelectedLessons" />
-        <CourseOverview v-else-if="!canManage || tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
-        <CourseSettingsForm v-else-if="canManage" :course="course" :saved="saved" @save="saveSettings" />
+  <LoadingSkeleton v-if="!courses.loaded || courses.loading" variant="detail" />
+  <PageContainer v-else-if="course">
+    <header class="course-header" :style="{ '--course-accent': course.accentColor }">
+      <div class="course-header__copy">
+        <div class="course-header__badges"><UiBadge :tone="course.status === 'published' ? 'success' : 'warning'" variant="soft">{{ courseStatusLabel(course.status) }}</UiBadge><UiBadge tone="neutral" variant="soft">{{ course.visibility }}</UiBadge></div>
+        <h1>{{ course.title }}</h1><p>{{ course.description || 'Описание курса пока не заполнено.' }}</p>
+        <div class="course-header__stats"><span>{{ course.modules.length }} {{ pluralize(course.modules.length, ['модуль', 'модуля', 'модулей']) }}</span><span>{{ lessonCount }} {{ pluralize(lessonCount, ['урок', 'урока', 'уроков']) }}</span><span>{{ course.defaultLessonDuration }} мин на урок</span><span>{{ completedLessonCount }} из {{ lessonCount }} пройдено</span></div>
       </div>
+      <div class="course-header__actions">
+        <RouterLink :to="{ name: 'course-preview', params: { courseId: course.id } }"><UiButton variant="ghost"><template #leading><Eye :size="17" /></template>Предпросмотр</UiButton></RouterLink>
+        <UiButton variant="secondary" @click="editCourseOpen = true"><template #leading><Edit3 :size="17" /></template>Настройки</UiButton>
+        <UiButton @click="publish"><template #leading><Send :size="17" /></template>Опубликовать</UiButton>
+        <UiButton variant="ghost" aria-label="Удалить курс" @click="deleteTarget.request('course', course.id, course.title)"><Trash2 :size="17" /></UiButton>
+      </div>
+    </header>
 
-      <AppModal v-if="moduleDialogOpen" title="Новый модуль" @close="moduleDialogOpen = false">
-        <form class="form" @submit.prevent="createModule">
-          <FormField label="Название модуля"><UiInput v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency" fluid /></FormField>
-          <div class="form-actions"><UiButton type="button" severity="secondary" outlined @click="moduleDialogOpen = false">Отмена</UiButton><UiButton type="submit">Добавить модуль</UiButton></div>
-        </form>
-      </AppModal>
+    <SectionHeading eyebrow="Структура" title="Программа курса" description="Основной экран для модулей, уроков и материалов курса.">
+      <template #action>
+        <UiButton @click="moduleDialogOpen = true"><template #leading><Plus :size="17" /></template>Добавить модуль</UiButton>
+      </template>
+    </SectionHeading>
 
-      <AppModal v-if="lessonDialogOpen" title="Новый урок" @close="lessonDialogOpen = false">
-        <form class="form" @submit.prevent="createLesson">
-          <FormField label="Название урока"><UiInput v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid /></FormField>
-          <div class="form-actions"><UiButton type="button" severity="secondary" outlined @click="lessonDialogOpen = false">Отмена</UiButton><UiButton type="submit">Создать и открыть</UiButton></div>
-        </form>
-      </AppModal>
+    <div v-if="course.modules.length" class="curriculum-list">
+      <CurriculumModuleCard
+        v-for="(module, moduleIndex) in course.modules"
+        :key="module.id"
+        :module="module"
+        :module-index="moduleIndex"
+        :module-count="course.modules.length"
+        @move-module="courses.moveModule(course.id, module.id, $event)"
+        @delete-module="deleteTarget.request('module', module.id, module.title)"
+        @add-lesson="openLessonDialog(module.id)"
+        @move-lesson="courses.moveLesson"
+        @delete-lesson="(lessonId, title) => deleteTarget.request('lesson', lessonId, title)"
+        @toggle-lesson-complete="setLessonCompleted"
+      />
+    </div>
+    <PageState v-else title="Программа пока пустая" description="Добавьте первый модуль, затем создайте уроки."><UiButton @click="moduleDialogOpen = true"><template #leading><Plus :size="17" /></template>Добавить модуль</UiButton></PageState>
 
-      <AppModal v-if="deleteLessonsDialogOpen" title="Удалить выбранные уроки" @close="deletingLessons || (deleteLessonsDialogOpen = false)">
-        <div class="bulk-lesson-delete">
-          <div class="bulk-lesson-delete-warning"><AlertTriangle /><div><strong>Удалить уроки: {{ selectedLessonIds.length }}?</strong><p>Уроки и все их блоки будут удалены без возможности восстановления.</p></div></div>
-          <div class="form-actions"><UiButton severity="secondary" outlined :disabled="deletingLessons" @click="deleteLessonsDialogOpen = false">Отмена</UiButton><UiButton severity="danger" :loading="deletingLessons" @click="deleteSelectedLessons"><Trash2 />Удалить</UiButton></div>
-        </div>
-      </AppModal>
-
-      <CourseDeleteDialog v-if="deleteDialogOpen" :course="course" :pending="deleting" :error="deleteError" @close="deleteDialogOpen = false" @confirm="deleteCourse" />
-      <CourseInviteDialog v-if="inviteDialogOpen" :course="course" :refreshing="inviteRefreshing" :error="inviteError" @close="inviteDialogOpen = false" @regenerate="refreshInviteCode" />
-    </template>
-    <section v-else class="product-empty full"><BookOpen /><h2>Курс не найден</h2><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
-  </DefaultLayout>
+    <CourseFormDialog :open="editCourseOpen" title="Настройки курса" :initial="courseDraft" :loading="saving" @close="editCourseOpen = false" @submit="saveCourse" />
+    <ModuleFormDialog :open="moduleDialogOpen" :loading="saving" @close="moduleDialogOpen = false" @submit="createModule" />
+    <LessonFormDialog :open="lessonDialogOpen" :default-duration="course.defaultLessonDuration" :loading="saving" @close="lessonDialogOpen = false" @submit="createLesson" />
+    <ConfirmDialog :open="Boolean(deleteTarget.target.value)" :title="deleteTarget.title.value" :description="deleteTarget.description.value" :loading="deleting" @close="deleteTarget.clear" @confirm="confirmDelete" />
+  </PageContainer>
+  <PageContainer v-else-if="courses.error"><PageState title="Не удалось загрузить курс" :description="courses.error" action-label="Повторить" retry @action="loadCourse(true)" /></PageContainer>
+  <PageContainer v-else><PageState title="Курс не найден" description="Возможно, он был удалён или ссылка больше не актуальна."><RouterLink :to="{ name: 'courses' }"><UiButton>Вернуться к курсам</UiButton></RouterLink></PageState></PageContainer>
 </template>
+
+<style scoped src="./course-details-page.css"></style>

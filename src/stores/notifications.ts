@@ -1,34 +1,30 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-export type NotificationTone = 'success' | 'error' | 'info'
+import { createId } from '@/utils/id'
+
+export type NotificationTone = 'success' | 'danger' | 'info'
 
 export interface AppNotification {
-  id: number
+  id: string
   message: string
   tone: NotificationTone
 }
 
-export const useNotificationStore = defineStore('notifications', () => {
-  const items = ref<AppNotification[]>([])
-  let nextId = 0
+const NOTIFICATION_LIFETIME_MS = 3500
 
-  function remove(id: number): void {
+export const useNotificationsStore = defineStore('notifications', () => {
+  const items = ref<AppNotification[]>([])
+
+  function remove(id: string): void {
     items.value = items.value.filter((item) => item.id !== id)
   }
 
-  function push(message: string, tone: NotificationTone = 'success', duration = 3600): number {
-    const id = ++nextId
-    items.value.push({ id, message, tone })
-    window.setTimeout(() => remove(id), duration)
-    return id
+  function push(message: string, tone: NotificationTone = 'info'): void {
+    const notification: AppNotification = { id: createId(), message, tone }
+    items.value.push(notification)
+    window.setTimeout(() => remove(notification.id), NOTIFICATION_LIFETIME_MS)
   }
 
-  return {
-    items,
-    remove,
-    success: (message: string) => push(message, 'success'),
-    error: (message: string) => push(message, 'error', 5200),
-    info: (message: string) => push(message, 'info'),
-  }
+  return { items, push, remove }
 })

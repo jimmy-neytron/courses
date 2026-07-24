@@ -1,99 +1,193 @@
 <script setup lang="ts">
-import { toRef } from 'vue'
-import { RouterLink } from 'vue-router'
-import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2 } from 'lucide-vue-next'
-import LessonBlockContent from '@/components/lesson/LessonBlockContent.vue'
-import LessonQuizQuestion from '@/components/lesson/LessonQuizQuestion.vue'
-import LessonSectionNav from '@/components/lesson/LessonSectionNav.vue'
-import { lessonSectionIcons } from '@/components/lesson/lessonSectionIcons'
-import { useLessonPlayer } from '@/composables/useLessonPlayer'
+import { computed } from 'vue'
+import { RouterLink, type RouteLocationRaw } from 'vue-router'
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  Clock3,
+  Headphones,
+  ListChecks,
+  Sparkles,
+} from 'lucide-vue-next'
+import { UiBadge } from '@neytron/compact-ui/badge'
+import { UiButton } from '@neytron/compact-ui/button'
+import { UiCard } from '@neytron/compact-ui/card'
+
+import LessonBlockRenderer from '@/components/lesson/LessonBlockRenderer.vue'
+import LessonSectionNav from '@/components/lesson/player/LessonSectionNav.vue'
+import {
+  useLessonPreview,
+  type LessonPreviewSectionId,
+} from '@/composables/useLessonPreview'
 import type { Lesson } from '@/types/course'
 
-const props = defineProps<{ lesson: Lesson }>()
+const props = withDefaults(defineProps<{
+  lesson: Lesson
+  authorPreview?: boolean
+}>(), {
+  authorPreview: false,
+})
+
 const {
   activeSectionId,
-  answers,
-  completedSections,
-  sections,
-  currentSection,
-  currentQuestions,
-  questions,
-  answeredCount,
-  correctCount,
-  courseTitle,
-  previousLesson,
-  nextLesson,
   canFinish,
-  isCompleted,
-  markSection,
-  answerQuestion,
-  questionNumber,
+  completedSections,
+  currentSection,
+  finishing,
+  nextLesson,
+  previousLesson,
+  progressPercent,
+  sections,
   finishLesson,
-} = useLessonPlayer(toRef(props, 'lesson'))
+  markSection,
+  selectSection,
+} = useLessonPreview(() => props.lesson, () => props.authorPreview)
+
+const sectionIcon = computed(() => {
+  const icons = {
+    theory: BookOpen,
+    listening: Headphones,
+    practice: Sparkles,
+    test: ListChecks,
+  }
+  return icons[currentSection.value?.id ?? 'theory']
+})
+
+const currentSectionCompleted = computed(() => (
+  currentSection.value
+    ? completedSections.value.includes(currentSection.value.id)
+    : false
+))
+
+function completeCurrentSection(): void {
+  if (!currentSection.value) return
+  markSection(currentSection.value.id)
+}
+
+function completeBlock(): void {
+  completeCurrentSection()
+}
+
+function lessonRoute(lessonId: string): RouteLocationRaw {
+  return {
+    name: 'lesson-preview',
+    params: { lessonId },
+    query: props.authorPreview ? { mode: 'author' } : undefined,
+  }
+}
+
+function sectionLabel(sectionId: LessonPreviewSectionId): string {
+  return sections.value.find((section) => section.id === sectionId)?.label ?? sectionId
+}
 </script>
 
 <template>
-  <div class="engine-player">
+  <article class="engine-player">
     <header class="engine-lesson-header">
       <div>
-        <p class="eyebrow">{{ courseTitle }} · {{ lesson.duration }} минут</p>
+        <span class="eyebrow">Урок · {{ lesson.durationMinutes }} мин</span>
         <h1>{{ lesson.title }}</h1>
-        <p>{{ sections.length }} разделов · {{ questions.length }} вопросов</p>
+        <p>{{ lesson.description || 'Описание урока пока не заполнено.' }}</p>
       </div>
-      <span v-if="isCompleted" class="engine-complete"><CheckCircle2 />Урок завершён</span>
+
+      <UiBadge
+        v-if="lesson.isCompleted"
+        class="engine-complete"
+        tone="success"
+        variant="soft"
+      >
+        <CheckCircle2 :size="15" />
+        Урок пройден
+      </UiBadge>
+      <div v-else class="engine-progress-status">
+        <span>{{ progressPercent }}%</span>
+        <small>пройдено</small>
+      </div>
     </header>
 
+    <section v-if="lesson.objectives.length" class="engine-objectives">
+      <small>После урока вы сможете</small>
+      <ul>
+        <li v-for="objective in lesson.objectives" :key="objective">
+          <Check :size="14" />
+          {{ objective }}
+        </li>
+      </ul>
+    </section>
+
     <LessonSectionNav
-      v-if="sections.length"
+      v-if="sections.length > 1"
       :sections="sections"
       :active-id="activeSectionId"
       :completed-ids="completedSections"
-      @select="activeSectionId = $event"
+      @select="selectSection"
     />
 
-    <main v-if="currentSection" class="engine-lesson-body">
-      <div class="engine-section-title">
-        <component :is="lessonSectionIcons[currentSection.id]" />
-        <div><small>Раздел урока</small><h2>{{ currentSection.label }}</h2></div>
+    <div v-if="currentSection" class="engine-lesson-body">
+      <header class="engine-section-title">
+        <component :is="sectionIcon" :size="18" />
+        <div>
+          <small>{{ currentSection.eyebrow }}</small>
+          <h2>{{ currentSection.label }}</h2>
+        </div>
         <span>{{ currentSection.blocks.length }} блоков</span>
-      </div>
+      </header>
 
-      <template v-for="block in currentSection.blocks" :key="block.id">
-        <LessonQuizQuestion
-          v-if="block.type === 'single_choice'"
-          :block="block"
-          :number="questionNumber(block)"
-          :answer="answers[block.id]"
-          :theory-available="sections.some((section) => section.id === 'theory')"
-          @answer="answerQuestion(block, $event, currentSection.id)"
-          @theory="activeSectionId = 'theory'"
-        />
-        <LessonBlockContent v-else :block="block" @complete="markSection(currentSection.id)" />
-      </template>
+      <LessonBlockRenderer
+        v-for="block in currentSection.blocks"
+        :key="block.id"
+        :block="block"
+        @completed="completeBlock"
+      />
 
-      <div v-if="currentQuestions.length && answeredCount" class="engine-test-result">
-        <span>Результат</span>
-        <strong>{{ correctCount }} из {{ questions.length }}</strong>
-        <p v-if="answeredCount < questions.length">Осталось ответить: {{ questions.length - answeredCount }}</p>
-        <p v-else>{{ correctCount === questions.length ? 'Все ответы верны' : 'Изучите объяснения и попробуйте ещё раз' }}</p>
-      </div>
-      <button v-if="!currentQuestions.length" class="engine-section-complete" @click="markSection(currentSection.id)">
-        <Check />{{ completedSections.includes(currentSection.id) ? 'Раздел изучен' : 'Я изучил этот раздел' }}
-      </button>
-    </main>
+      <UiButton
+        class="engine-section-complete"
+        :variant="currentSectionCompleted ? 'secondary' : undefined"
+        size="sm"
+        @click="completeCurrentSection"
+      >
+        <template #leading><Check :size="15" /></template>
+        {{ currentSectionCompleted ? `${sectionLabel(currentSection.id)} пройден` : 'Отметить раздел пройденным' }}
+      </UiButton>
+    </div>
 
-    <section v-else class="product-empty compact">
-      <BookOpen />
-      <h3>В уроке пока нет доступных разделов</h3>
-      <p>Автор может включить разделы и добавить материалы в редакторе.</p>
-    </section>
+    <UiCard v-else variant="outline" padding="lg">
+      В уроке пока нет блоков.
+    </UiCard>
 
     <footer class="engine-lesson-footer">
-      <RouterLink v-if="previousLesson" :to="`/preview/lessons/${previousLesson.id}`"><ArrowLeft />{{ previousLesson.title }}</RouterLink>
+      <RouterLink v-if="previousLesson" :to="lessonRoute(previousLesson.id)">
+        <UiButton variant="ghost" size="sm">
+          <template #leading><ArrowLeft :size="15" /></template>
+          {{ previousLesson.title }}
+        </UiButton>
+      </RouterLink>
       <span v-else />
-      <button :disabled="!canFinish" @click="finishLesson"><CheckCircle2 />Завершить урок</button>
-      <RouterLink v-if="nextLesson" :to="`/preview/lessons/${nextLesson.id}`">Следующий урок<ArrowRight /></RouterLink>
-      <span v-else />
+
+      <UiButton
+        :disabled="!canFinish || finishing"
+        :loading="finishing"
+        size="sm"
+        @click="finishLesson"
+      >
+        <template #leading><CheckCircle2 :size="15" /></template>
+        {{ lesson.isCompleted ? 'Урок пройден' : 'Завершить урок' }}
+      </UiButton>
+
+      <RouterLink v-if="nextLesson" :to="lessonRoute(nextLesson.id)">
+        <UiButton variant="ghost" size="sm">
+          {{ nextLesson.title }}
+          <template #trailing><ArrowRight :size="15" /></template>
+        </UiButton>
+      </RouterLink>
+      <span v-else class="engine-course-end">
+        <Clock3 :size="14" /> Последний урок курса
+      </span>
     </footer>
-  </div>
+  </article>
 </template>
+
+<style scoped src="./lesson-player.css"></style>

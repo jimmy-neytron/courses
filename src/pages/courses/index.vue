@@ -1,86 +1,89 @@
 <script setup lang="ts">
-import { watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { BookOpen, LogIn, Plus, Search } from 'lucide-vue-next'
-import UiButton from '@/components/ui/UiButton.vue'
-import UiInput from '@/components/ui/UiInput.vue'
-import UiSegmented from '@/components/ui/UiSegmented.vue'
-import DefaultLayout from '@/layouts/default.vue'
-import CourseCard from '@/components/CourseCard.vue'
-import CourseCreateDialog from '@/components/course/CourseCreateDialog.vue'
-import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
-import CourseJoinDialog from '@/components/course/CourseJoinDialog.vue'
-import { useCoursesPage } from '@/composables/useCoursesPage'
+import { computed, onMounted, ref } from 'vue'
+import { Plus, Search } from 'lucide-vue-next'
+import { UiButton } from '@neytron/compact-ui/button'
+import { UiInput } from '@neytron/compact-ui/input'
 
-const {
-  query,
-  status,
-  access,
-  statusOptions,
-  accessOptions,
-  createDialogOpen,
-  joinDialogOpen,
-  joining,
-  joinError,
-  selectedForDelete,
-  deleting,
-  deleteError,
-  filteredCourses,
-  createCourse,
-  joinCourse,
-  openDeleteDialog,
-  confirmDelete,
-} = useCoursesPage()
+import { useCoursesStore } from '@/stores/courses'
+import type { CourseDraft } from '@/types/course'
+import { CourseCard } from '@/components/course'
+import CourseFormDialog from '@/components/course/forms/course-form/CourseFormDialog.vue'
+import { getErrorMessage } from '@/utils/error'
+import { useNotificationsStore } from '@/stores/notifications'
+import { EyebrowText, LoadingSkeleton, PageContainer, PageState } from '@/components/ui'
 
-const route = useRoute()
-const router = useRouter()
-watch(() => route.query.create, (value) => {
-  if (value === '1') createDialogOpen.value = true
-}, { immediate: true })
+const courses = useCoursesStore()
+const notifications = useNotificationsStore()
+const query = ref('')
+const dialogOpen = ref(false)
+const creating = ref(false)
 
-function closeCreateDialog(): void {
-  createDialogOpen.value = false
-  if (route.query.create) void router.replace({ query: { ...route.query, create: undefined } })
+const filteredCourses = computed(() => {
+  const normalized = query.value.trim().toLowerCase()
+  if (!normalized) return courses.courses
+  return courses.courses.filter((course) => `${course.title} ${course.description}`.toLowerCase().includes(normalized))
+})
+
+onMounted(() => loadCourses())
+
+async function loadCourses(force = false): Promise<void> {
+  try {
+    await courses.load(force)
+  } catch (error) {
+    notifications.push(getErrorMessage(error, 'Не удалось загрузить курсы'), 'danger')
+  }
+}
+
+async function createCourse(draft: CourseDraft): Promise<void> {
+  creating.value = true
+  try {
+    await courses.createCourse(draft)
+    dialogOpen.value = false
+    notifications.push('Курс создан', 'success')
+  } catch (error) {
+    notifications.push(getErrorMessage(error, 'Не удалось создать курс'), 'danger')
+  } finally {
+    creating.value = false
+  }
 }
 </script>
 
 <template>
-  <DefaultLayout>
-    <div class="workspace-page courses-page">
-      <section class="catalog-intro is-compact">
-        <div><h1>Курсы</h1><span>{{ filteredCourses.length }} в текущем списке</span></div>
-        <div class="workspace-actions">
-          <UiButton severity="secondary" outlined @click="joinDialogOpen = true"><LogIn />Ввести код</UiButton>
-          <UiButton @click="createDialogOpen = true"><Plus />Новый курс</UiButton>
-        </div>
-      </section>
+  <LoadingSkeleton v-if="!courses.loaded || courses.loading" variant="courses" />
+  <PageContainer v-else>
+    <header class="courses-page__header">
+      <div class="courses-page__intro">
+        <EyebrowText>Рабочее пространство</EyebrowText>
+        <h1>Курсы</h1>
+        <p>Создавайте программу, уроки и материалы в едином аккуратном пространстве.</p>
+      </div>
+      <UiButton @click="dialogOpen = true">
+        <template #leading><Plus :size="18" /></template>
+        Создать курс
+      </UiButton>
+    </header>
 
-      <section class="catalog-controls is-compact">
-        <label class="catalog-search"><Search /><UiInput v-model="query" placeholder="Найти курс" aria-label="Поиск курсов" /></label>
-        <UiSegmented v-model="access" :options="accessOptions" :allow-empty="false" aria-label="Доступ к курсам" />
-        <UiSegmented v-model="status" :options="statusOptions" :allow-empty="false" aria-label="Статус курса" />
-      </section>
+    <PageState v-if="courses.error" title="Не удалось загрузить курсы" :description="courses.error" action-label="Повторить" retry size="compact" @action="loadCourses(true)" />
+    <template v-else>
+      <div class="courses-toolbar">
+        <UiInput v-model="query" class="courses-search" placeholder="Найти курс" clearable>
+          <template #prefix><Search :size="17" /></template>
+        </UiInput>
+        <span class="courses-toolbar__count">{{ filteredCourses.length }} из {{ courses.courses.length }}</span>
+      </div>
+      <div v-if="filteredCourses.length" class="course-grid">
+        <CourseCard v-for="course in filteredCourses" :key="course.id" :course="course" />
+      </div>
+      <PageState v-else :title="query ? 'Ничего не найдено' : 'Создайте первый курс'" :description="query ? 'Попробуйте изменить запрос.' : 'Сначала создайте курс, затем добавьте модули и уроки.'">
+        <UiButton v-if="!query" @click="dialogOpen = true">
+          <template #leading><Plus :size="18" /></template>
+          Создать курс
+        </UiButton>
+      </PageState>
+    </template>
 
-      <section v-if="filteredCourses.length" class="course-grid workspace-course-grid catalog-grid">
-        <CourseCard v-for="course in filteredCourses" :key="course.id" :course="course" deletable @delete="openDeleteDialog" />
-      </section>
-      <section v-else class="workspace-empty catalog-empty">
-        <span><BookOpen /></span>
-        <h2>{{ query ? 'Курсы не найдены' : 'Курсов пока нет' }}</h2>
-        <p>{{ query ? 'Измените запрос или фильтры.' : 'Создайте первый курс с любой тематикой.' }}</p>
-        <UiButton v-if="!query" @click="createDialogOpen = true"><Plus />Создать курс</UiButton>
-      </section>
-
-      <CourseCreateDialog v-if="createDialogOpen" @close="closeCreateDialog" @create="createCourse" />
-      <CourseJoinDialog v-if="joinDialogOpen" :pending="joining" :error="joinError" @close="joinDialogOpen = false" @join="joinCourse" />
-      <CourseDeleteDialog
-        v-if="selectedForDelete"
-        :course="selectedForDelete"
-        :pending="deleting"
-        :error="deleteError"
-        @close="selectedForDelete = null"
-        @confirm="confirmDelete"
-      />
-    </div>
-  </DefaultLayout>
+    <CourseFormDialog :open="dialogOpen" :loading="creating" @close="dialogOpen = false" @submit="createCourse" />
+  </PageContainer>
 </template>
+
+<style scoped src="./courses-page.css"></style>

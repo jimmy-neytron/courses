@@ -1,139 +1,156 @@
-export type CourseStatus = 'Опубликован' | 'Черновик'
+export type CourseStatus = 'draft' | 'published' | 'archived'
+export type CourseVisibility = 'private' | 'unlisted' | 'public'
+export type LessonStatus = 'draft' | 'published' | 'archived'
 
-export type CourseAccessRole = 'creator' | 'learner'
-
-export type CourseKind = 'language' | 'general'
-
-export type CourseTemplateId = 'blank-language' | 'blank-general'
-
-export interface CourseCreateInput {
-  templateId: CourseTemplateId
-  kind: CourseKind
-  title: string
-  description: string
-  languageCode?: string
-  sourceLevel?: string
-  targetLevel?: string
-  durationWeeks?: number
-  lessonsPerWeek?: number
-  defaultLessonDuration: number
-}
-
-export interface CourseCreator {
-  id: string
-  name: string
-  avatarUrl?: string
-}
-
-export interface CourseLearningPlan {
-  durationWeeks: number
-  sessionsPerWeek: number
-  sessionMinutes: number
-  totalSessions: number
-  checkpointCount: number
-  cadence: string
-  outcome: string
-}
-
-export type BlockType =
+export type LessonBlockType =
   | 'heading'
-  | 'text'
+  | 'rich_text'
   | 'callout'
+  | 'image'
   | 'audio'
-  | 'pdf'
-  | 'grammar'
+  | 'video'
+  | 'file'
   | 'vocabulary'
-  | 'practice'
-  | 'conversation'
   | 'flashcards'
-  | 'error_correction'
-  | 'translation'
+  | 'grammar'
+  | 'example'
   | 'single_choice'
+  | 'multiple_choice'
+  | 'text_input'
+  | 'fill_blanks'
+  | 'matching'
+  | 'ordering'
+  | 'sentence_builder'
+  | 'translation'
+  | 'listening'
+  | 'open_answer'
+  | 'divider'
+  | 'summary'
+  | 'homework'
 
-export type LessonSectionId = string
-
-export interface LessonSectionConfig {
-  id: LessonSectionId
-  label: string
-  visible: boolean
-  order: number
-}
-
-export interface Flashcard {
-  front: string
-  back: string
-  hint: string
-}
-
-export interface CorrectionItem {
-  incorrect: string
-  correct: string
-  explanation: string
+export interface LessonBlockContent {
+  [key: string]: unknown
+  text?: string
+  url?: string
+  caption?: string
+  fileName?: string
 }
 
 export interface LessonBlock {
   id: string
-  type: BlockType
+  courseId: string
+  lessonId: string
+  blockType: LessonBlockType
+  position: number
   title: string
-  content: string
-  required: boolean
-  schemaVersion?: number
-  sectionId?: LessonSectionId
-  options?: string[]
-  correctOption?: number
-  explanation?: string
-  audioUrl?: string
-  audioPath?: string
-  transcript?: string
-  fileUrl?: string
-  filePath?: string
-  fileName?: string
-  fileSize?: number
-  cards?: Flashcard[]
-  role?: string
-  prompt?: string
-  starter?: string
-  sampleAnswer?: string
-  corrections?: CorrectionItem[]
-  sourceText?: string
-  targetText?: string
-  comprehensionQuestions?: string[]
+  publicContent: LessonBlockContent
+  privateContent: Record<string, unknown>
+  settings: Record<string, unknown>
+  isRequired: boolean
+  points: number
+  schemaVersion: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Lesson {
   id: string
+  courseId: string
+  moduleId: string
+  slug: string
   title: string
-  duration: number
-  status: CourseStatus
+  description: string
+  objectives: string[]
+  durationMinutes: number
+  passingScore: number
+  position: number
+  status: LessonStatus
+  isPreview: boolean
+  isCompleted: boolean
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
   blocks: LessonBlock[]
-  sectionConfig?: LessonSectionConfig[]
-  sectionConfigBlockId?: string
 }
 
 export interface CourseModule {
   id: string
+  courseId: string
   title: string
-  open: boolean
+  description: string
+  position: number
+  isPublished: boolean
+  createdAt: string
+  updatedAt: string
   lessons: Lesson[]
 }
 
 export interface Course {
   id: string
   ownerId: string
-  accessRole: CourseAccessRole
-  creator: CourseCreator
-  joinCode?: string
-  kind: CourseKind
-  languageCode?: string
-  sourceLevel?: string
-  targetLevel?: string
-  defaultLessonDuration: number
-  learningPlan?: CourseLearningPlan
+  slug: string
   title: string
   description: string
-  cover: string
-  tag: string
+  languageCode: string
+  sourceLevel: string
+  targetLevel: string
+  durationWeeks: number | null
+  lessonsPerWeek: number | null
+  defaultLessonDuration: number
+  coverPath: string | null
+  accentColor: string
   status: CourseStatus
-  updated: string
+  visibility: CourseVisibility
+  isSequential: boolean
+  currentReleaseId: string | null
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
   modules: CourseModule[]
+}
+
+export interface CourseDraft {
+  title: string
+  description: string
+  languageCode: string
+  sourceLevel: string
+  targetLevel: string
+  durationWeeks: number | null
+  lessonsPerWeek: number | null
+  defaultLessonDuration: number
+  accentColor: string
+  visibility: CourseVisibility
+  isSequential: boolean
+}
+
+export interface CoursePatch extends Partial<CourseDraft> {
+  status?: CourseStatus
+  publishedAt?: string | null
+}
+
+export interface ModuleDraft {
+  title: string
+  description: string
+}
+
+export interface LessonDraft {
+  title: string
+  description: string
+  objectives: string[]
+  durationMinutes: number
+  passingScore: number
+}
+
+export interface LessonPatch extends Partial<LessonDraft> {
+  status?: LessonStatus
+  position?: number
+  isCompleted?: boolean
+}
+
+export interface BlockDraft {
+  blockType: LessonBlockType
+  title: string
+  publicContent: LessonBlockContent
+  isRequired: boolean
+  points: number
 }

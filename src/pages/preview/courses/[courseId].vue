@@ -1,52 +1,43 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { BookOpen, Check, ChevronDown, Clock3, GraduationCap, Play, X } from 'lucide-vue-next'
-import { useCourseStore } from '@/stores/courses'
-import { useLearningProgress } from '@/composables/useLearningProgress'
-import { useRecentCourses } from '@/composables/useRecentCourses'
-import LessonPlayer from '@/components/lesson/LessonPlayer.vue'
-import FullscreenLayout from '@/layouts/fullscreen.vue'
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { ArrowRight, BookOpen, Clock3 } from 'lucide-vue-next'
+import { UiBadge } from '@neytron/compact-ui/badge'
+import { UiButton } from '@neytron/compact-ui/button'
+import { UiCard } from '@neytron/compact-ui/card'
+
+import { useCoursesStore } from '@/stores/courses'
+import { pluralize } from '@/utils/text'
+import { EyebrowText, LoadingSkeleton, PageState } from '@/components/ui'
 
 const route = useRoute()
-const router = useRouter()
-const store = useCourseStore()
-const progress = useLearningProgress()
-const recent = useRecentCourses()
-const selectedId = ref(String(route.query.lesson ?? ''))
-const course = computed(() => store.findCourse(String(route.params.courseId)))
-const lessons = computed(() => course.value?.modules.flatMap((module) => module.lessons) ?? [])
-const nextLesson = computed(() => lessons.value.find((lesson) => !progress.isCompleted(lesson.id)) ?? lessons.value.at(-1))
-const selected = computed(() => lessons.value.find((lesson) => lesson.id === selectedId.value) ?? nextLesson.value ?? lessons.value[0])
-const completedCount = computed(() => lessons.value.filter((lesson) => progress.isCompleted(lesson.id)).length)
-
-watch([course, selected], ([currentCourse, lesson]) => {
-  if (!currentCourse || !lesson) return
-  recent.record({
-    courseId: currentCourse.id,
-    lessonId: lesson.id,
-    path: `/preview/courses/${currentCourse.id}?lesson=${lesson.id}`,
-    label: lesson.title,
-  })
-}, { immediate: true })
-
-function select(id: string): void {
-  selectedId.value = id
-  void router.replace({ query: { ...route.query, lesson: id } })
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
+const courses = useCoursesStore()
+const course = computed(() => courses.courseById(String(route.params.courseId)))
+const publishedModules = computed(() => (course.value?.modules ?? [])
+  .map((module) => ({
+    ...module,
+    lessons: module.lessons.filter((lesson) => lesson.status === 'published'),
+  }))
+  .filter((module) => module.lessons.length > 0))
+const publishedLessonCount = computed(() => publishedModules.value.reduce(
+  (total, module) => total + module.lessons.length,
+  0,
+))
+onMounted(() => loadCourse())
+async function loadCourse(force = false): Promise<void> { try { await courses.load(force) } catch {} }
 </script>
 
 <template>
-  <FullscreenLayout>
-    <div v-if="course" class="engine-course-shell">
-      <aside class="engine-course-sidebar">
-        <div class="engine-course-brand"><span><GraduationCap /></span><div><small>Учебная программа</small><strong>{{ course.title }}</strong></div></div>
-        <section class="engine-course-summary"><span>{{ course.tag }}</span><div><b>{{ completedCount }} из {{ lessons.length }} уроков</b><small>{{ nextLesson ? `Продолжить: ${nextLesson.title}` : 'Программа завершена' }}</small></div></section>
-        <nav><section v-for="module in course.modules" :key="module.id" class="engine-phase"><header><ChevronDown /><div><strong>{{ module.title }}</strong><small>{{ module.lessons.length }} уроков</small></div></header><button v-for="lesson in module.lessons" :key="lesson.id" :class="{ active: selected?.id === lesson.id, completed: progress.isCompleted(lesson.id) }" @click="select(lesson.id)"><span><Check v-if="progress.isCompleted(lesson.id)" /><Play v-else /></span><div><b>{{ lesson.title }}</b><small><Clock3 />{{ lesson.duration }} мин · {{ lesson.blocks.length }} материалов</small></div></button></section></nav>
-      </aside>
-      <main class="engine-course-main"><header class="engine-course-topbar"><div><BookOpen /><span><small>Курс</small><b>{{ course.title }}</b></span></div><RouterLink :to="`/app/courses/${course.id}`" class="icon-button" aria-label="Закрыть курс"><X /></RouterLink></header><LessonPlayer v-if="selected" :lesson="selected" /><section v-else class="product-empty full"><BookOpen /><h2>В курсе пока нет уроков</h2></section></main>
-    </div>
-    <section v-else class="empty-state"><h2>Курс не найден</h2><p v-if="store.loadError">{{ store.loadError }}</p><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
-  </FullscreenLayout>
+  <LoadingSkeleton v-if="!courses.loaded || courses.loading" variant="preview" />
+  <article v-else-if="course" :style="{ '--course-accent': course.accentColor }">
+    <header class="course-preview__hero"><UiBadge tone="success" variant="soft">Предпросмотр автора</UiBadge><h1>{{ course.title }}</h1><p>{{ course.description || 'Описание курса не заполнено.' }}</p><div class="course-preview__meta"><span><BookOpen :size="17" />{{ publishedModules.length }} {{ pluralize(publishedModules.length, ['модуль', 'модуля', 'модулей']) }}</span><span><Clock3 :size="17" />{{ course.defaultLessonDuration }} мин на урок</span><span><BookOpen :size="17" />{{ publishedLessonCount }} {{ pluralize(publishedLessonCount, ['урок', 'урока', 'уроков']) }}</span></div></header>
+    <section v-if="publishedModules.length" class="course-preview__program">
+      <UiCard v-for="(module, moduleIndex) in publishedModules" :key="module.id" variant="outline" padding="lg"><EyebrowText>Модуль {{ moduleIndex + 1 }}</EyebrowText><h2>{{ module.title }}</h2><p>{{ module.description }}</p><div class="preview-lesson-list"><RouterLink v-for="lesson in module.lessons" :key="lesson.id" :to="{ name: 'lesson-preview', params: { lessonId: lesson.id } }"><span><strong>{{ lesson.title }}</strong><small>{{ lesson.durationMinutes }} мин · {{ lesson.blocks.length }} блоков</small></span><UiButton variant="ghost" size="sm" aria-label="Открыть урок"><ArrowRight :size="17" /></UiButton></RouterLink></div></UiCard>
+    </section>
+    <PageState v-else title="Нет опубликованных уроков" description="Опубликуйте хотя бы один урок — после этого он появится в программе курса." />
+  </article>
+  <PageState v-else-if="courses.error" size="viewport" title="Не удалось загрузить курс" :description="courses.error" action-label="Повторить" retry @action="loadCourse(true)" />
+  <PageState v-else size="viewport" title="Курс не найден" description="Возможно, он был удалён или ссылка больше не актуальна." />
 </template>
+
+<style scoped src="./course-preview-page.css"></style>

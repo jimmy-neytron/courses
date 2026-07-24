@@ -1,9 +1,0 @@
-import { isSupabaseConfigured, requireSupabase } from '@/services/supabase'
-const BUCKET = 'lesson-assets'
-const MAX_AUDIO_SIZE = 50 * 1024 * 1024
-const AUDIO_TYPES = new Set(['audio/mpeg','audio/mp4','audio/ogg','audio/wav','audio/x-wav'])
-const AUDIO_EXTENSIONS = new Set(['mp3','m4a','mp4','ogg','wav'])
-function safeFileName(name:string):string { const ext=name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g,'')||'mp3'; return `${crypto.randomUUID()}.${ext}` }
-export function validateAudioFile(file:File):void { const extension=file.name.split('.').pop()?.toLowerCase()??'';if(!AUDIO_TYPES.has(file.type)&&!AUDIO_EXTENSIONS.has(extension))throw new Error('Поддерживаются MP3, M4A, OGG и WAV');if(file.size>MAX_AUDIO_SIZE)throw new Error('Аудиофайл должен быть не больше 50 МБ') }
-export async function createLessonAudioUrl(path:string):Promise<string>{ if(!path||!isSupabaseConfigured)return '';const{data,error}=await requireSupabase().storage.from(BUCKET).createSignedUrl(path,21600);if(error)throw error;return data.signedUrl }
-export async function uploadLessonAudio(params:{organizationId:string;courseId:string;lessonId:string;blockId:string;file:File}):Promise<{path:string;url:string}>{validateAudioFile(params.file);if(!isSupabaseConfigured)return{path:'',url:URL.createObjectURL(params.file)};const path=`${params.organizationId}/${params.courseId}/${params.lessonId}/${params.blockId}/${safeFileName(params.file.name)}`;const{error}=await requireSupabase().storage.from(BUCKET).upload(path,params.file,{cacheControl:'3600',contentType:params.file.type==='audio/x-wav'?'audio/wav':params.file.type||undefined,upsert:true});if(error)throw error;return{path,url:await createLessonAudioUrl(path)}}

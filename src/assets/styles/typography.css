@@ -1,150 +1,35 @@
-:root {
-  --font-sans: 'Onest', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --line-height-control: 1.4;
-  --line-height-body: 1.55;
-  --font-size-control: 13px;
-  --icon-size-button: 14px;
-  font-family: var(--font-sans);
-}
-
-html,
-body,
-#app,
-button,
-input,
-textarea,
-select,
-option,
-optgroup {
-  font-family: var(--font-sans);
-}
-
 body {
-  font-size: var(--font-body, 14px);
-  font-weight: 400;
-  line-height: var(--line-height-body);
-  font-feature-settings: 'ss01' 1, 'cv01' 1;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-button,
-input,
-textarea,
-select {
-  line-height: var(--line-height-control) !important;
-  letter-spacing: -0.01em;
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
 }
 
-button {
-  font-weight: 600;
+h1,
+h2,
+h3,
+strong {
+  color: var(--app-text);
 }
 
-select,
-option,
-optgroup {
-  font-size: var(--font-size-control);
-  font-weight: 400;
+h1 {
+  margin-bottom: 13px;
+  font-size: clamp(34px, 4vw, 50px);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
 }
 
-input::placeholder,
-textarea::placeholder {
-  font-family: var(--font-sans);
-  font-weight: 400;
+h2 {
+  letter-spacing: -0.025em;
 }
 
-/* Библиотечные overlays are teleported to body, so every public control is covered explicitly. */
-.ui-component,
-.ui-input,
-.ui-textarea,
-.ui-password,
-.ui-input,
-.ui-select,
-.ui-select-label,
-.ui-select-overlay,
-.ui-select-option,
-.ui-button,
-.ui-button-label,
-.ui-menu,
-.ui-menu-item-label,
-.ui-contextmenu,
-.ui-modal,
-.ui-drawer,
-.ui-popover,
-.ui-tooltip,
-.ui-message,
-.ui-fileupload {
-  font-family: var(--font-sans);
-}
-
-.ui-input,
-.ui-textarea,
-.ui-input,
-.ui-select-label,
-.ui-select-option,
-.ui-button,
-.ui-button-label,
-.ui-menu-item-label,
-.ui-contextmenu-item-label {
-  line-height: var(--line-height-control) !important;
-}
-
-.ui-input,
-.ui-textarea,
-.ui-input {
-  font-weight: 500;
-}
-
-.ui-select {
-  align-items: stretch;
-  font-size: var(--font-size-control);
-  font-weight: 400;
-}
-
-.ui-select-label {
-  display: flex;
-  align-items: center;
-  align-self: stretch;
-  padding-block: 0 !important;
-  font-size: inherit !important;
-  font-weight: 400;
-}
-
-.ui-select-option {
-  font-size: var(--font-size-control);
-  font-weight: 400;
-}
-
-.ui-select-dropdown svg {
-  width: var(--icon-size-button);
-  height: var(--icon-size-button);
-}
-
-.ui-select-dropdown {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-}
-
-.ui-button,
-.ui-button-label,
-.ui-menu-item-label,
-.ui-contextmenu-item-label {
-  font-weight: 600;
-}
-
-.ui-button svg,
-.ui-button .ui-button-icon {
-  width: var(--icon-size-button) !important;
-  height: var(--icon-size-button) !important;
-  font-size: var(--icon-size-button) !important;
-  flex: none;
-}
-
-/* Overrides the old compact shorthand without changing the block geometry. */
-.product-module-index {
-  font-family: var(--font-sans);
-  line-height: var(--line-height-control);
+p {
+  color: var(--app-muted);
+  line-height: 1.65;
 }

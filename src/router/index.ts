@@ -1,49 +1,24 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
+
 import { useAuthStore } from '@/stores/auth'
+import { routes } from './routes'
 
 export const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    { path: '/', redirect: '/app/courses' },
-    { path: '/auth', component: () => import('@/pages/auth/index.vue'), meta: { guest: true } },
-    { path: '/app', redirect: '/app/courses' },
-    { path: '/app/courses', component: () => import('@/pages/courses/index.vue'), meta: { title: 'Курсы', auth: true } },
-    {
-      path: '/app/courses/:courseId',
-      component: () => import('@/pages/courses/[courseId].vue'),
-      meta: { title: 'Программа курса', auth: true },
-    },
-    {
-      path: '/app/lessons/:lessonId/editor',
-      component: () => import('@/pages/lessons/[lessonId]/editor.vue'),
-      meta: { title: 'Редактор урока', loadingLabel: 'Открываем редактор урока', auth: true },
-    },
-    {
-      path: '/preview/courses/:courseId',
-      component: () => import('@/pages/preview/courses/[courseId].vue'),
-      meta: { loadingLabel: 'Открываем курс', auth: true },
-    },
-    {
-      path: '/preview/lessons/:lessonId',
-      component: () => import('@/pages/preview/lessons/[lessonId].vue'),
-      meta: { loadingLabel: 'Открываем урок', auth: true },
-    },
-    {
-      path: '/app/:section(integrations|settings)',
-      component: () => import('@/pages/[section].vue'),
-      meta: { auth: true },
-    },
-    { path: '/:pathMatch(.*)*', redirect: '/app/courses' },
-  ],
+  routes,
+  scrollBehavior: () => ({ top: 0 }),
 })
 
-router.beforeEach((route) => {
+router.beforeEach((route: RouteLocationNormalized) => {
   const auth = useAuthStore()
-  if (!auth.isConfigured) return true
 
+  if (!auth.initialized) return true
   if (route.meta.auth && !auth.isAuthenticated) {
-    return { path: '/auth', query: { redirect: route.fullPath } }
+    return { name: 'auth', query: { redirect: route.fullPath } }
   }
-  if (route.meta.guest && auth.isAuthenticated) return '/app'
+  if (route.meta.guest && auth.isAuthenticated) {
+    return { name: 'courses' }
+  }
+
   return true
 })

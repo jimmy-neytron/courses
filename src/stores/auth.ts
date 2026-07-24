@@ -1,144 +1,98 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { Session, User } from '@supabase/supabase-js'
-import { isSupabaseConfigured, supabase } from '@/services/supabase'
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 
-export interface OrganizationContext {
-  id: string
-  name: string
-  role: string
-}
+import {
+  loadProfile,
+  signInWithPassword,
+  signOutCurrentUser,
+  signUpWithPassword,
+} from '@/services/auth/auth.service'
+import type { AuthProfile } from '@/types/auth'
+import { isSupabaseConfigured, supabase } from '@/services/supabase/client'
 
-interface OrganizationMemberRow {
-  role?: string
-  organizations: { id: string; name: string } | null
+const LOCAL_PROFILE: AuthProfile = {
+  id: '00000000-0000-4000-8000-000000000001',
+  email: 'local@courses.app',
+  displayName: 'Локальный автор',
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const session = ref<Session | null>(null)
+  const initialized = ref(false)
+  const loading = ref(false)
   const user = ref<User | null>(null)
-  const organization = ref<OrganizationContext | null>(null)
-  const loading = ref(true)
-  const initializationError = ref('')
-  let initialized = false
-  const isAuthenticated = computed(() => Boolean(session.value))
+  const profile = ref<AuthProfile | null>(null)
 
-  async function loadOrganization(): Promise<void> {
-    if (!supabase || !user.value) {
-      organization.value = null
-      return
-    }
+  const isConfigured = isSupabaseConfigured
+  const isAuthenticated = computed(() => !isSupabaseConfigured || Boolean(user.value))
+  const userId = computed(() => isSupabaseConfigured ? user.value?.id ?? '' : LOCAL_PROFILE.id)
+  const displayName = computed(() => isSupabaseConfigured
+    ? profile.value?.displayName || user.value?.email || 'Автор'
+    : LOCAL_PROFILE.displayName)
 
-    const { data, error } = await supabase
-      .from('organization_members')
-      .select('role, organizations(id,name)')
-      .eq('user_id', user.value.id)
-      .limit(1)
-      .maybeSingle()
-    if (error) throw error
+  async function refreshProfile(): Promise<void> {
+    profile.value = user.value ? await loadProfile(user.value) : null
+  }
 
-    const member = data as unknown as OrganizationMemberRow | null
-    organization.value = member?.organizations
-      ? { ...member.organizations, role: String(member.role ?? 'viewer') }
-      : null
+  async function applySession(session: Session | null): Promise<void> {
+    user.value = session?.user ?? null
+    await refreshProfile()
   }
 
   async function initialize(): Promise<void> {
-    if (initialized) return
+    if (initialized.value) return
+
     if (!supabase) {
-      initialized = true
-      loading.value = false
+      profile.value = LOCAL_PROFILE
+      initialized.value = true
       return
     }
 
-    initializationError.value = ''
+    const { data, error } = await supabase.auth.getSession()
+    if (error) throw new Error(error.message)
+
+    await applySession(data.session)
+    supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      void applySession(session)
+    })
+    initialized.value = true
+  }
+
+  async function signIn(email: string, password: string): Promise<void> {
+    loading.value = true
     try {
-      const { data, error } = await supabase.auth.getSession()
-      if (error) throw error
-
-      session.value = data.session
-      user.value = data.session?.user ?? null
-
-      supabase.auth.onAuthStateChange((_event, nextSession) => {
-        session.value = nextSession
-        user.value = nextSession?.user ?? null
-        if (nextSession) setTimeout(() => void loadOrganization().catch(() => undefined), 0)
-        else organization.value = null
-      })
-
-      if (user.value) {
-        try {
-          await loadOrganization()
-        } catch (error) {
-          initializationError.value = error instanceof Error
-            ? error.message
-            : 'Не удалось загрузить организацию пользователя'
-        }
-      }
-    } catch (error) {
-      session.value = null
-      user.value = null
-      organization.value = null
-      initializationError.value = error instanceof Error ? error.message : 'Не удалось инициализировать авторизацию'
+      await signInWithPassword(email, password)
     } finally {
-      initialized = true
       loading.value = false
     }
   }
 
-  async function signIn(email: string, password: string): Promise<void> {
-    if (!supabase) throw new Error('Supabase не настроен')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-  }
-
-  async function signUp(email: string, password: string, displayName: string): Promise<boolean> {
-    if (!supabase) throw new Error('Supabase не настроен')
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: displayName } },
-    })
-    if (error) throw error
-    return Boolean(data.session)
-  }
-
-  async function updateProfile(displayName: string): Promise<void> {
-    if (!supabase || !user.value) return
-
-    const { error } = await supabase.auth.updateUser({ data: { display_name: displayName } })
-    if (error) throw error
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ display_name: displayName })
-      .eq('id', user.value.id)
-    if (profileError) throw profileError
-
-    const { data } = await supabase.auth.getUser()
-    user.value = data.user
+  async function signUp(email: string, password: string, name: string): Promise<void> {
+    loading.value = true
+    try {
+      await signUpWithPassword(email, password, name)
+    } finally {
+      loading.value = false
+    }
   }
 
   async function signOut(): Promise<void> {
-    await supabase?.auth.signOut()
-    session.value = null
-    user.value = null
-    organization.value = null
+    await signOutCurrentUser()
   }
 
   return {
-    session,
-    user,
-    organization,
+    initialized,
     loading,
-    initializationError,
-    isConfigured: isSupabaseConfigured,
+    user,
+    profile,
+    isConfigured,
     isAuthenticated,
+    userId,
+    displayName,
     initialize,
-    loadOrganization,
+    refreshProfile,
     signIn,
     signUp,
-    updateProfile,
     signOut,
   }
 })

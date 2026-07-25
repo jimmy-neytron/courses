@@ -1,23 +1,30 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { useAttrs } from 'vue'
+import { UiTextarea as CompactTextarea } from '@neytron/compact-ui/textarea'
+import type { UiTextareaResize } from '@neytron/compact-ui/textarea'
 
-const props = withDefaults(defineProps<{ modelValue?: string; autoResize?: boolean; fluid?: boolean }>(), { modelValue: '' })
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
-const element = ref<HTMLTextAreaElement>()
-
-function resize(): void {
-  if (!props.autoResize || !element.value) return
-  element.value.style.height = 'auto'
-  element.value.style.height = `${element.value.scrollHeight}px`
-}
-function update(event: Event): void {
-  emit('update:modelValue', (event.target as HTMLTextAreaElement).value)
-  void nextTick(resize)
-}
-watch(() => props.modelValue, () => void nextTick(resize))
-onMounted(resize)
+defineOptions({ inheritAttrs: false })
+const props = withDefaults(defineProps<{
+  modelValue?: string
+  autoResize?: boolean
+  fluid?: boolean
+  label?: string
+  placeholder?: string
+  hint?: string
+  error?: string
+  rows?: number | string
+  maxlength?: number
+  showCount?: boolean
+  resize?: UiTextareaResize
+  disabled?: boolean
+  readonly?: boolean
+  required?: boolean
+  name?: string
+}>(), { modelValue: '', resize: 'vertical' })
+const emit = defineEmits<{ 'update:modelValue': [value: string]; change: [event: Event] }>()
+const attrs = useAttrs()
 </script>
 
 <template>
-  <textarea ref="element" :value="modelValue" :class="['ui-textarea', { 'is-fluid': fluid }]" @input="update" />
+  <CompactTextarea v-bind="{ ...attrs, ...props }" :rows="Number(rows ?? 3)" @update:model-value="emit('update:modelValue', $event)" @change="emit('change', $event)" />
 </template>

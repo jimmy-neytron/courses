@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { LoaderCircle } from 'lucide-vue-next'
+import { computed, useAttrs } from 'vue'
+import { UiButton as CompactButton } from '@neytron/compact-ui/button'
+import type { UiButtonVariant } from '@neytron/compact-ui/button'
 
-withDefaults(defineProps<{
+defineOptions({ inheritAttrs: false })
+
+const props = withDefaults(defineProps<{
   as?: 'button' | 'a'
   type?: 'button' | 'submit' | 'reset'
   href?: string
@@ -16,21 +20,32 @@ withDefaults(defineProps<{
   disabled?: boolean
   size?: 'small' | 'medium'
   link?: boolean
+  ariaLabel?: string
 }>(), { as: 'button', type: 'button', severity: 'primary', size: 'medium' })
+
+const attrs = useAttrs()
+const variant = computed<UiButtonVariant>(() => {
+  if (props.severity === 'danger') return 'danger'
+  if (props.text || props.link) return 'ghost'
+  if (props.severity === 'secondary' || props.outlined) return 'secondary'
+  return 'primary'
+})
+const classes = computed(() => ['ui-button', `is-${props.severity}`, {
+  'is-outlined': props.outlined,
+  'is-text': props.text,
+  'is-rounded': props.rounded,
+  'is-fluid': props.fluid,
+  'is-loading': props.loading,
+  'is-small': props.size === 'small',
+  'is-link': props.link,
+}])
 </script>
 
 <template>
-  <component
-    :is="as"
-    :type="as === 'button' ? type : undefined"
-    :href="as === 'a' ? href : undefined"
-    :target="as === 'a' ? target : undefined"
-    :disabled="as === 'button' ? disabled || loading : undefined"
-    :aria-disabled="disabled || loading || undefined"
-    :class="['ui-button', `is-${severity}`, { 'is-outlined': outlined, 'is-text': text, 'is-rounded': rounded, 'is-fluid': fluid, 'is-loading': loading, 'is-small': size === 'small', 'is-link': link }]"
-  >
-    <LoaderCircle v-if="loading" class="ui-button-spinner" />
-    <slot v-else />
-    <span v-if="label">{{ label }}</span>
-  </component>
+  <a v-if="as === 'a'" v-bind="attrs" :href="href" :target="target" :aria-label="ariaLabel" :aria-disabled="disabled || loading || undefined" :class="classes">
+    <slot /><span v-if="label">{{ label }}</span>
+  </a>
+  <CompactButton v-else v-bind="attrs" :class="classes" :type="type" :variant="variant" :size="size === 'small' ? 'sm' : 'md'" :block="fluid" :loading="loading" :disabled="disabled" :aria-label="ariaLabel">
+    <slot /><span v-if="label">{{ label }}</span>
+  </CompactButton>
 </template>

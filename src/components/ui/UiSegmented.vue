@@ -1,10 +1,15 @@
 <script setup lang="ts" generic="T extends string | number">
-defineProps<{ modelValue: T; options: T[]; allowEmpty?: boolean }>()
+import { computed, useAttrs } from 'vue'
+import { UiTabs as CompactTabs } from '@neytron/compact-ui/tabs'
+import type { UiTabItem } from '@neytron/compact-ui/tabs'
+
+defineOptions({ inheritAttrs: false })
+const props = defineProps<{ modelValue: T; options: T[]; allowEmpty?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: T] }>()
+const attrs = useAttrs()
+const items = computed<UiTabItem<T>[]>(() => props.options.map((option) => ({ label: String(option), value: option })))
 </script>
 
 <template>
-  <div class="ui-segmented" role="group">
-    <button v-for="option in options" :key="String(option)" type="button" :class="['ui-segmented-option', { 'is-active': option === modelValue }]" :aria-pressed="option === modelValue" @click="emit('update:modelValue', option)">{{ option }}</button>
-  </div>
+  <CompactTabs v-bind="attrs" class="ui-segmented" :model-value="modelValue" :items="items" @update:model-value="emit('update:modelValue', $event)" />
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, watch } from 'vue'
 import { X } from 'lucide-vue-next'
+import UiButton from '@/components/ui/UiButton.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -15,7 +16,7 @@ onBeforeUnmount(() => { document.body.style.overflow = '' })
     <Transition name="ui-drawer">
       <div v-if="visible" class="ui-drawer-layer" @mousedown.self="visible = false">
         <aside class="ui-drawer" role="dialog" aria-modal="true" v-bind="$attrs">
-          <header class="ui-drawer-header"><slot name="header" /><button type="button" aria-label="Закрыть" @click="visible = false"><X /></button></header>
+          <header class="ui-drawer-header"><slot name="header" /><UiButton severity="secondary" text rounded aria-label="Закрыть" @click="visible = false"><X /></UiButton></header>
           <div class="ui-drawer-content"><slot /></div>
         </aside>
       </div>

@@ -89,3 +89,185 @@
   text-transform: none;
   letter-spacing: normal;
 }
+/* @neytron/compact-ui compatibility surfaces */
+.ui-segmented.cui-tabs { display: inline-block; padding: 0; border: 0; background: transparent; }
+.ui-segmented .cui-tabs__list { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #26372d; border-radius: 11px; background: #0a100c; }
+.ui-segmented .cui-tabs__tab { min-height: 34px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: #7f8d84; font: inherit; font-size: 11px; white-space: nowrap; }
+.ui-segmented .cui-tabs__tab:hover { color: #cdd9d1; }
+.ui-segmented .cui-tabs__tab[aria-selected='true'] { background: #193524; color: #8ceeb5; box-shadow: inset 0 0 0 1px #356348; }
+.ui-segmented .cui-tabs__panel { display: none !important; }
+
+.cui-dialog__backdrop { z-index: 1000; background: #020705bd; backdrop-filter: blur(12px); }
+.cui-dialog { width: min(540px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); overflow: auto; border-color: #293c31; border-radius: 18px; background: #0b120e; box-shadow: 0 30px 100px #0009; color-scheme: dark; }
+.cui-dialog__header { padding: 18px 20px; border-bottom: 1px solid #1d2c23; background: #0e1711; }
+.cui-dialog__title { font-size: 17px; }
+.cui-dialog__body { padding: 20px; background: #080d0a; color: #dbe6df; }
+.cui-dialog .form label { color: #aab8af; }
+.cui-dialog .form input::placeholder,
+.cui-dialog .form textarea::placeholder { color: #5d6b62; }
+.product-tabs.cui-tabs { display: block; }
+.product-tabs .cui-tabs__list { display: flex; gap: 4px; overflow-x: auto; }
+.product-tabs .cui-tabs__tab[aria-selected='true'] { color: #8ceeb5; border-bottom-color: var(--accent); }
+.product-tabs .cui-tabs__panel { display: none !important; }
+/* Compact UI structural alignment fixes */
+.cui-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.cui-button.ui-button .cui-button__content,
+.cui-button.ui-button .cui-button__label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cui-button.ui-button .cui-button__label > svg,
+.cui-button.ui-button .cui-button__label > .lucide {
+  flex: 0 0 auto;
+}
+
+.cui-button.ui-button .cui-button__label {
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Legacy form rules must never draw a second field inside UiInput. */
+.cui-input .cui-input__native,
+.cui-input .cui-input__native:hover,
+.cui-input .cui-input__native:focus,
+.cui-input .cui-input__native:focus-visible {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.cui-input__control,
+.cui-select__control,
+.cui-textarea__native {
+  width: 100%;
+  min-width: 0;
+}
+
+.command-palette-search .cui-input,
+.catalog-search .cui-input {
+  flex: 1;
+}
+
+.command-palette-search .cui-input__control,
+.catalog-controls .catalog-search .cui-input__control {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.command-palette-search .cui-input__native {
+  font-size: 14px;
+}
+
+.catalog-search .cui-input__native::placeholder {
+  color: #59685f;
+}
+
+.editor-document-head .cui-input__control {
+  min-height: 42px;
+  margin: 5px 0 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.product-inspector .cui-input__control,
+.product-inspector .cui-select__control {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+.product-inspector .cui-textarea__native {
+  font-size: 12px;
+}
+
+.repeatable-card .cui-input__control {
+  min-height: 38px;
+  font-size: 11px;
+}
+
+.repeatable-card .cui-textarea__native {
+  font-size: 11px;
+}
+
+.course-join-dialog .cui-input__native {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.product-editor .cui-input__control,
+.product-editor .cui-select__control {
+  min-height: 38px;
+  font-size: 12px;
+}
+
+.product-editor .cui-textarea__native {
+  font-size: 12px;
+}
+/* Unified composite search fields: the outer label owns the border and focus ring. */
+.palette-search .cui-input,
+.block-picker-search .cui-input,
+.catalog-search .cui-input,
+.command-palette-search .cui-input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.palette-search .cui-input__control,
+.block-picker-search .cui-input__control,
+.catalog-search .cui-input__control,
+.command-palette-search .cui-input__control,
+.palette-search .cui-input__control:hover,
+.block-picker-search .cui-input__control:hover,
+.catalog-search .cui-input__control:hover,
+.command-palette-search .cui-input__control:hover,
+.palette-search .cui-input__control:focus-within,
+.block-picker-search .cui-input__control:focus-within,
+.catalog-search .cui-input__control:focus-within,
+.command-palette-search .cui-input__control:focus-within {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.palette-search .cui-input__control:has(.cui-input__native:focus-visible),
+.block-picker-search .cui-input__control:has(.cui-input__native:focus-visible),
+.catalog-search .cui-input__control:has(.cui-input__native:focus-visible),
+.command-palette-search .cui-input__control:has(.cui-input__native:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+.palette-search .cui-input__native,
+.block-picker-search .cui-input__native {
+  font-size: 12px;
+}
+
+.palette-search:focus-within > svg,
+.block-picker-search:focus-within > svg,
+.catalog-search:focus-within > svg,
+.command-palette-search:focus-within > svg {
+  color: var(--accent-2);
+}

@@ -66,8 +66,7 @@ watch(() => palette.open.value, async (value) => {
   query.value = ''
   activeIndex.value = 0
   await nextTick()
-  const element = input.value?.$el as HTMLInputElement | undefined
-  element?.focus()
+  input.value?.focus()
 })
 watch(query, () => { activeIndex.value = 0 })
 

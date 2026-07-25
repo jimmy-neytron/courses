@@ -9,6 +9,7 @@
         "typecheck": "vue-tsc --noEmit -p tsconfig.app.json"
     },
     "dependencies": {
+        "@neytron/compact-ui": "^0.3.4",
         "@supabase/supabase-js": "^2.110.7",
         "@vueuse/core": "14.3.0",
         "lucide-vue-next": "^0.468.0",

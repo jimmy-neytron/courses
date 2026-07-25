@@ -55,8 +55,6 @@ begin
 end;
 $$;
 
--- Remove dependent integration/session data before the learner table.
-drop table if exists public.embed_sessions;
 drop table if exists public.learner_external_identities;
 
 -- Remove learning state from the leaves towards the root.

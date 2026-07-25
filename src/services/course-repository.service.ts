@@ -38,6 +38,7 @@ const courseSelect = `
     id,
     title,
     position,
+    is_published,
     lessons(
       id,
       title,
@@ -510,6 +511,23 @@ export async function publishCourseRecord(courseId: string): Promise<void> {
   throwIfError(courseResult.error)
 }
 
+export async function updateModuleStatusRecord(moduleId: string, status: Course['status']): Promise<void> {
+  const { error } = await requireSupabase()
+    .from('course_modules')
+    .update({ is_published: status === 'Опубликован' })
+    .eq('id', moduleId)
+  if (error) throw error
+}
+
+export async function draftCourseRecord(courseId: string): Promise<void> {
+  const database = requireSupabase()
+  const lessonsResult = await database.from('lessons').update({ status: 'draft', published_at: null }).eq('course_id', courseId)
+  throwIfError(lessonsResult.error)
+  const modulesResult = await database.from('course_modules').update({ is_published: false }).eq('course_id', courseId)
+  throwIfError(modulesResult.error)
+  const courseResult = await database.from('courses').update({ status: 'draft', current_release_id: null, published_at: null }).eq('id', courseId)
+  throwIfError(courseResult.error)
+}
 export async function saveCourseOrder(course: Course): Promise<void> {
   const database = requireSupabase()
   const moduleResults = await Promise.all(course.modules.map((module, position) => (

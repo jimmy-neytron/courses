@@ -349,143 +349,6 @@ begin
 end;
 $$;
 
-create or replace function public.create_integration_api_key(
-  p_integration_id uuid,
-  p_name text,
-  p_expires_at timestamptz default null
-)
-returns table (api_key_id uuid, api_key text)
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_org_id uuid;
-  v_raw_key text;
-  v_key_hash text;
-  v_key_prefix text;
-  v_id uuid;
-begin
-  select organization_id into v_org_id
-  from public.integration_clients
-  where id = p_integration_id;
-
-  if v_org_id is null then
-    raise exception 'INTEGRATION_NOT_FOUND';
-  end if;
-
-  if not public.has_org_role(
-    v_org_id,
-    array['owner', 'admin']::public.organization_role[]
-  ) then
-    raise exception 'FORBIDDEN';
-  end if;
-
-  if p_expires_at is not null and p_expires_at <= now() then
-    raise exception 'INVALID_EXPIRY';
-  end if;
-
-  v_raw_key := 'cp_live_' || encode(gen_random_bytes(32), 'hex');
-  v_key_hash := encode(digest(v_raw_key, 'sha256'), 'hex');
-  v_key_prefix := left(v_raw_key, 16);
-
-  insert into public.integration_api_keys (
-    integration_id, name, key_prefix, key_hash, expires_at, created_by
-  ) values (
-    p_integration_id, p_name, v_key_prefix, v_key_hash, p_expires_at, auth.uid()
-  ) returning id into v_id;
-
-  insert into public.audit_logs (
-    organization_id, actor_user_id, action, entity_type, entity_id,
-    metadata
-  ) values (
-    v_org_id,
-    auth.uid(),
-    'integration.api_key.created',
-    'integration_api_key',
-    v_id::text,
-    jsonb_build_object('integrationId', p_integration_id, 'prefix', v_key_prefix)
-  );
-
-  api_key_id := v_id;
-  api_key := v_raw_key;
-  return next;
-end;
-$$;
-
-create or replace function public.revoke_integration_api_key(p_api_key_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_org_id uuid;
-begin
-  select ic.organization_id into v_org_id
-  from public.integration_api_keys k
-  join public.integration_clients ic on ic.id = k.integration_id
-  where k.id = p_api_key_id;
-
-  if v_org_id is null then
-    raise exception 'API_KEY_NOT_FOUND';
-  end if;
-
-  if not public.has_org_role(
-    v_org_id,
-    array['owner', 'admin']::public.organization_role[]
-  ) then
-    raise exception 'FORBIDDEN';
-  end if;
-
-  update public.integration_api_keys
-  set revoked_at = coalesce(revoked_at, now())
-  where id = p_api_key_id;
-end;
-$$;
-
-create or replace function public.list_integration_api_keys(p_integration_id uuid)
-returns table (
-  id uuid,
-  name text,
-  key_prefix text,
-  expires_at timestamptz,
-  revoked_at timestamptz,
-  last_used_at timestamptz,
-  created_by uuid,
-  created_at timestamptz
-)
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-declare
-  v_org_id uuid;
-begin
-  select organization_id into v_org_id
-  from public.integration_clients
-  where integration_clients.id = p_integration_id;
-
-  if v_org_id is null then
-    raise exception 'INTEGRATION_NOT_FOUND';
-  end if;
-
-  if not public.has_org_role(
-    v_org_id,
-    array['owner', 'admin']::public.organization_role[]
-  ) then
-    raise exception 'FORBIDDEN';
-  end if;
-
-  return query
-  select k.id, k.name, k.key_prefix, k.expires_at, k.revoked_at,
-         k.last_used_at, k.created_by, k.created_at
-  from public.integration_api_keys k
-  where k.integration_id = p_integration_id
-  order by k.created_at desc;
-end;
-$$;
 
 create or replace function public.reorder_course_modules(
   p_course_id uuid,
@@ -706,8 +569,7 @@ begin
     'profiles', 'organizations', 'organization_members', 'courses',
     'course_modules', 'lessons', 'lesson_blocks', 'learners',
     'course_enrollments', 'lesson_attempts', 'lesson_block_progress',
-    'learner_notes', 'integration_clients', 'learner_external_identities',
-    'webhook_events'
+    'learner_notes'
   ]
   loop
     execute format('drop trigger if exists set_updated_at on public.%I', t);
@@ -788,18 +650,12 @@ create trigger protect_organization_owner_membership
 
 revoke all on function public.create_organization(text, text) from public;
 revoke all on function public.publish_course(uuid, text) from public;
-revoke all on function public.create_integration_api_key(uuid, text, timestamptz) from public;
-revoke all on function public.revoke_integration_api_key(uuid) from public;
-revoke all on function public.list_integration_api_keys(uuid) from public;
 revoke all on function public.reorder_course_modules(uuid, jsonb) from public;
 revoke all on function public.reorder_lessons(uuid, jsonb) from public;
 revoke all on function public.reorder_lesson_blocks(uuid, jsonb) from public;
 
 grant execute on function public.create_organization(text, text) to authenticated;
 grant execute on function public.publish_course(uuid, text) to authenticated;
-grant execute on function public.create_integration_api_key(uuid, text, timestamptz) to authenticated;
-grant execute on function public.revoke_integration_api_key(uuid) to authenticated;
-grant execute on function public.list_integration_api_keys(uuid) to authenticated;
 grant execute on function public.reorder_course_modules(uuid, jsonb) to authenticated;
 grant execute on function public.reorder_lessons(uuid, jsonb) to authenticated;
 grant execute on function public.reorder_lesson_blocks(uuid, jsonb) to authenticated;

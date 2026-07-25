@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { MessageSquare } from 'lucide-vue-next'
-import ActivePractice from '@/components/lesson/engine/ActivePractice.vue'
-import ConversationPractice from '@/components/lesson/engine/ConversationPractice.vue'
-import ErrorClinic from '@/components/lesson/engine/ErrorClinic.vue'
-import FlashcardDeck from '@/components/lesson/engine/FlashcardDeck.vue'
-import TranslationPractice from '@/components/lesson/engine/TranslationPractice.vue'
-import LessonAudioPlayer from '@/components/lesson/LessonAudioPlayer.vue'
-import LessonPdfViewer from '@/components/lesson/LessonPdfViewer.vue'
+import ActivePractice from '@/components/lesson/player/practice/ActivePractice.vue'
+import ConversationPractice from '@/components/lesson/player/practice/ConversationPractice.vue'
+import ErrorClinic from '@/components/lesson/player/practice/ErrorClinic.vue'
+import FlashcardDeck from '@/components/lesson/player/practice/FlashcardDeck.vue'
+import TranslationPractice from '@/components/lesson/player/practice/TranslationPractice.vue'
+import LessonAudioPlayer from '@/components/lesson/player/LessonAudioPlayer.vue'
+import LessonPdfViewer from '@/components/lesson/player/LessonPdfViewer.vue'
 import type { LessonBlock } from '@/types/course'
 
 defineProps<{ block: LessonBlock }>()

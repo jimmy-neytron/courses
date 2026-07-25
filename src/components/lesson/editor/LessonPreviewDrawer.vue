@@ -2,7 +2,7 @@
 import { ExternalLink } from 'lucide-vue-next'
 import UiDrawer from '@/components/ui/UiDrawer.vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import LessonPlayer from '@/components/lesson/LessonPlayer.vue'
+import LessonPlayer from '@/components/lesson/player/LessonPlayer.vue'
 import type { Lesson } from '@/types/course'
 
 defineProps<{ lesson: Lesson }>()

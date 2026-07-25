@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { BookOpen, CheckSquare2, ChevronDown, Clock3, CopyPlus, GripVertical, ListChecks, Plus, Square, Trash2 } from 'lucide-vue-next'
+import { ArchiveRestore, BookOpen, CheckSquare2, ChevronDown, Clock3, CopyPlus, GripVertical, ListChecks, Plus, Sparkles, Square, Trash2 } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import SaveState from '@/components/common/SaveState.vue'
 import type { CourseModule } from '@/types/course'
@@ -22,6 +22,8 @@ const emit = defineEmits<{
   addLesson: [moduleId: string]
   duplicateModule: [moduleId: string]
   duplicateLesson: [moduleId: string, lessonId: string]
+  toggleModuleStatus: [moduleId: string]
+  toggleLessonStatus: [lessonId: string]
   toggleSelectionMode: []
   toggleLesson: [lessonId: string, extendRange?: boolean, forceSelect?: boolean]
   toggleModuleLessons: [moduleId: string]
@@ -117,6 +119,17 @@ onBeforeUnmount(stopLongPress)
             <span><strong>{{ module.title }}</strong><small>{{ module.lessons.length }} уроков · {{ module.lessons.reduce((sum, lesson) => sum + lesson.duration, 0) }} минут</small></span>
             <ChevronDown :class="{ rotated: !module.open }" />
           </button>
+          <span :class="['product-status', module.status === 'Черновик' && 'is-draft']">{{ module.status }}</span>
+          <UiButton
+            v-if="!selectionMode"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :aria-label="module.status === 'Опубликован' ? `Вернуть модуль ${module.title} в черновик` : `Опубликовать модуль ${module.title}`"
+            :title="module.status === 'Опубликован' ? 'Вернуть модуль в черновик' : 'Опубликовать модуль'"
+            @click="emit('toggleModuleStatus', module.id)"
+          ><ArchiveRestore v-if="module.status === 'Опубликован'" /><Sparkles v-else /></UiButton>
           <UiButton
             v-if="!selectionMode"
             severity="secondary"
@@ -142,6 +155,16 @@ onBeforeUnmount(stopLongPress)
                 <div><strong>{{ lesson.title }}</strong><small><Clock3 />{{ lesson.duration }} мин <span>·</span> {{ lesson.blocks.length }} блоков</small></div>
                 <span :class="['product-status', lesson.status === 'Черновик' && 'is-draft']">{{ lesson.status }}</span>
               </RouterLink>
+              <UiButton
+                v-if="!selectionMode"
+                severity="secondary"
+                text
+                rounded
+                size="small"
+                :aria-label="lesson.status === 'Опубликован' ? `Вернуть урок ${lesson.title} в черновик` : `Опубликовать урок ${lesson.title}`"
+                :title="lesson.status === 'Опубликован' ? 'Вернуть урок в черновик' : 'Опубликовать урок'"
+                @click="emit('toggleLessonStatus', lesson.id)"
+              ><ArchiveRestore v-if="lesson.status === 'Опубликован'" /><Sparkles v-else /></UiButton>
               <UiButton
                 v-if="!selectionMode"
                 severity="secondary"

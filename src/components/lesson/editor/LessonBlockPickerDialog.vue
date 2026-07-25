@@ -2,11 +2,11 @@
 import { computed } from 'vue'
 import { Plus, Search } from 'lucide-vue-next'
 import UiInput from '@/components/ui/UiInput.vue'
-import AppModal from '@/components/AppModal.vue'
+import UiModal from '@/components/ui/UiModal.vue'
 import {
   groupLessonBlockCatalog,
   type LessonBlockCatalogItem,
-} from '@/components/lesson/editor/lessonBlockCatalog'
+} from '@/data/lesson-block-catalog'
 import type { BlockType } from '@/types/course'
 
 const props = defineProps<{ insertAfterIndex: number; items: LessonBlockCatalogItem[] }>()
@@ -21,7 +21,7 @@ function chooseFirst(): void {
 </script>
 
 <template>
-  <AppModal title="Добавить блок" @close="emit('close')">
+  <UiModal title="Добавить блок" @close="emit('close')">
     <div class="block-picker">
       <div class="block-picker-target">
         <Plus />
@@ -43,5 +43,5 @@ function chooseFirst(): void {
       </section>
       <p v-if="!items.length" class="palette-empty">Ничего не найдено</p>
     </div>
-  </AppModal>
+  </UiModal>
 </template>

@@ -114,6 +114,7 @@ export interface CourseModule {
   id: string
   title: string
   open: boolean
+  status: CourseStatus
   lessons: Lesson[]
 }
 
@@ -122,7 +123,6 @@ export interface Course {
   ownerId: string
   accessRole: CourseAccessRole
   creator: CourseCreator
-  joinCode?: string
   kind: CourseKind
   languageCode?: string
   sourceLevel?: string

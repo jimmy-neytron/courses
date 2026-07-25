@@ -29,8 +29,8 @@ export const router = createRouter({
       meta: { loadingLabel: 'Открываем урок', auth: true },
     },
     {
-      path: '/app/:section(integrations|settings)',
-      component: () => import('@/pages/[section].vue'),
+      path: '/app/settings',
+      component: () => import('@/pages/settings.vue'),
       meta: { auth: true },
     },
     { path: '/:pathMatch(.*)*', redirect: '/app/courses' },

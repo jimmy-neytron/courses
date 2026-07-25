@@ -5,7 +5,7 @@ import UiInput from '@/components/ui/UiInput.vue'
 import {
   groupLessonBlockCatalog,
   type LessonBlockCatalogItem,
-} from '@/components/lesson/editor/lessonBlockCatalog'
+} from '@/data/lesson-block-catalog'
 import type { BlockType } from '@/types/course'
 
 const props = defineProps<{ items: LessonBlockCatalogItem[] }>()

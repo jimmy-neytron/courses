@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { BookOpen, LogIn, Plus, Search } from 'lucide-vue-next'
+import { BookOpen, Plus, Search } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSegmented from '@/components/ui/UiSegmented.vue'
 import DefaultLayout from '@/layouts/default.vue'
-import CourseCard from '@/components/CourseCard.vue'
+import CourseCard from '@/components/course/CourseCard.vue'
 import CourseCreateDialog from '@/components/course/CourseCreateDialog.vue'
 import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
-import CourseJoinDialog from '@/components/course/CourseJoinDialog.vue'
 import { useCoursesPage } from '@/composables/useCoursesPage'
 
 const {
@@ -19,15 +18,11 @@ const {
   statusOptions,
   accessOptions,
   createDialogOpen,
-  joinDialogOpen,
-  joining,
-  joinError,
   selectedForDelete,
   deleting,
   deleteError,
   filteredCourses,
   createCourse,
-  joinCourse,
   openDeleteDialog,
   confirmDelete,
 } = useCoursesPage()
@@ -50,8 +45,7 @@ function closeCreateDialog(): void {
       <section class="catalog-intro is-compact">
         <div><h1>Курсы</h1><span>{{ filteredCourses.length }} в текущем списке</span></div>
         <div class="workspace-actions">
-          <UiButton severity="secondary" outlined @click="joinDialogOpen = true"><LogIn />Ввести код</UiButton>
-          <UiButton @click="createDialogOpen = true"><Plus />Новый курс</UiButton>
+          <UiButton class="catalog-create-button" @click="createDialogOpen = true"><Plus />Новый курс</UiButton>
         </div>
       </section>
 
@@ -72,7 +66,6 @@ function closeCreateDialog(): void {
       </section>
 
       <CourseCreateDialog v-if="createDialogOpen" @close="closeCreateDialog" @create="createCourse" />
-      <CourseJoinDialog v-if="joinDialogOpen" :pending="joining" :error="joinError" @close="joinDialogOpen = false" @join="joinCourse" />
       <CourseDeleteDialog
         v-if="selectedForDelete"
         :course="selectedForDelete"

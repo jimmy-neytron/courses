@@ -12,7 +12,6 @@ import LessonSectionsDialog from '@/components/lesson/editor/LessonSectionsDialo
 import { useLessonEditor } from '@/composables/useLessonEditor'
 
 const previewOpen = ref(false)
-const inspectorOpen = ref(false)
 const {
   found,
   blocks,
@@ -44,7 +43,7 @@ const {
   assignBlockSection,
   assignSelectedSection,
   updateOptions,
-  publish,
+  toggleLessonStatus,
   uploadAudio,
   uploadPdf,
   openSections,
@@ -64,8 +63,7 @@ const {
         :saved="saved"
         @sections="openSections"
         @preview="previewOpen = true"
-        @inspect="inspectorOpen = !inspectorOpen"
-        @publish="publish"
+        @toggle-status="toggleLessonStatus"
       />
       <LessonBlockPalette v-model:query="paletteQuery" :items="filteredPalette" @add="addBlock" />
       <LessonEditorCanvas
@@ -81,7 +79,6 @@ const {
         @change="scheduleSave"
       />
       <LessonBlockInspector
-        :class="{ 'is-mobile-open': inspectorOpen }"
         :selected="selected"
         :sections="availableSections"
         :selected-section-id="selectedSectionId"
@@ -94,7 +91,6 @@ const {
         @upload-pdf="uploadPdf"
         @remove="removeSelectedBlock"
       />
-      <button v-if="inspectorOpen" class="editor-inspector-backdrop" aria-label="Закрыть настройки блока" @click="inspectorOpen = false" />
 
       <LessonPreviewDrawer v-model:visible="previewOpen" :lesson="found.lesson" />
       <LessonSectionsDialog

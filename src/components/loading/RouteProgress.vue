@@ -25,5 +25,5 @@ onBeforeUnmount(()=>{removeBefore?.();removeAfter?.();removeError?.();clearInter
 <template><div v-show="visible" class="route-progress" aria-hidden="true"><span :style="{transform:`scaleX(${progress/100})`}" /></div></template>
 
 <style scoped>
-.route-progress{position:fixed;inset:0 0 auto;height:3px;z-index:1000;pointer-events:none;background:#22c87512}.route-progress span{display:block;width:100%;height:100%;transform-origin:left;background:linear-gradient(90deg,#129653,#2ee986,#9af7bf);box-shadow:0 0 18px #22c875,0 0 7px #ffffff66;transition:transform .16s ease-out}
+.route-progress{position:fixed;inset:0 0 auto;height:3px;z-index:1000;pointer-events:none;background:#00dc8212}.route-progress span{display:block;width:100%;height:100%;transform-origin:left;background:linear-gradient(90deg,#129653,#2ee986,#9af7bf);box-shadow:0 0 18px #00dc82,0 0 7px #ffffff66;transition:transform .16s ease-out}
 </style>

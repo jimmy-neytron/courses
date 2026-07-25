@@ -30,9 +30,6 @@ export function useCourseDetails() {
   const lessonDialogOpen = ref(false)
   const deleteDialogOpen = ref(false)
   const deleteLessonsDialogOpen = ref(false)
-  const inviteDialogOpen = ref(false)
-  const inviteRefreshing = ref(false)
-  const inviteError = ref('')
   const moduleTitle = ref('')
   const lessonTitle = ref('')
   const lessonModuleId = ref('')
@@ -186,12 +183,29 @@ export function useCourseDetails() {
     }, 'Не удалось сохранить курс', 'Настройки курса сохранены')
   }
 
-  async function publishCourse() {
+  async function toggleCourseStatus() {
     if (!course.value || !canManage.value) return
+    const next = course.value.status === 'Опубликован' ? 'Черновик' : 'Опубликован'
     await run(async () => {
-      await store.publishCourse(course.value!.id)
+      await store.setCourseStatus(course.value!.id, next)
       showSaved()
-    }, 'Не удалось опубликовать курс', 'Курс опубликован')
+    }, 'Не удалось изменить статус курса', next === 'Опубликован' ? 'Курс опубликован' : 'Курс возвращён в черновик')
+  }
+
+  async function toggleModuleStatus(moduleId: string) {
+    if (!course.value || !canManage.value) return
+    const module = modules.value.find((item) => item.id === moduleId)
+    if (!module) return
+    const next = module.status === 'Опубликован' ? 'Черновик' : 'Опубликован'
+    await run(() => store.setModuleStatus(course.value!.id, moduleId, next), 'Не удалось изменить статус модуля')
+  }
+
+  async function toggleLessonStatus(lessonId: string) {
+    if (!course.value || !canManage.value) return
+    const lesson = modules.value.flatMap((module) => module.lessons).find((item) => item.id === lessonId)
+    if (!lesson) return
+    const next = lesson.status === 'Опубликован' ? 'Черновик' : 'Опубликован'
+    await run(() => store.setLessonStatus(lessonId, next), 'Не удалось изменить статус урока')
   }
 
   async function deleteCourse() {
@@ -211,20 +225,6 @@ export function useCourseDetails() {
     }
   }
 
-  async function refreshInviteCode() {
-    if (!course.value || !canManage.value) return
-    inviteRefreshing.value = true
-    inviteError.value = ''
-    try {
-      await store.refreshJoinCode(course.value.id)
-      notifications.success('Код приглашения обновлён')
-    } catch (error) {
-      inviteError.value = error instanceof Error ? error.message : 'Не удалось обновить код приглашения'
-      notifications.error(inviteError.value)
-    } finally {
-      inviteRefreshing.value = false
-    }
-  }
 
   return {
     store,
@@ -240,9 +240,6 @@ export function useCourseDetails() {
     lessonDialogOpen,
     deleteDialogOpen,
     deleteLessonsDialogOpen,
-    inviteDialogOpen,
-    inviteRefreshing,
-    inviteError,
     moduleTitle,
     lessonTitle,
     orderSaving,
@@ -266,8 +263,9 @@ export function useCourseDetails() {
     requestDeleteSelectedLessons,
     deleteSelectedLessons,
     saveSettings,
-    publishCourse,
+    toggleCourseStatus,
+    toggleModuleStatus,
+    toggleLessonStatus,
     deleteCourse,
-    refreshInviteCode,
   }
 }

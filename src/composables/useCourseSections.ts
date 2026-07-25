@@ -48,13 +48,9 @@ export function createLessonSectionConfig(
   source?: LessonSectionConfig[],
   kind: CourseKind = 'language',
 ): LessonSectionConfig[] {
-  const defaults = getDefaultLessonSections(kind)
-  const savedSections = new Map((source ?? []).map((section) => [section.id, section]))
-  const defaultIds = new Set(defaults.map((section) => section.id))
-  const sections = [
-    ...defaults.map((fallback) => ({ ...fallback, ...savedSections.get(fallback.id) })),
-    ...(source ?? []).filter((section) => !defaultIds.has(section.id)),
-  ]
+  const sections = source?.length
+    ? source.map((section) => ({ ...section }))
+    : getDefaultLessonSections(kind).map((section) => ({ ...section }))
 
   return sections
     .sort((left, right) => left.order - right.order)

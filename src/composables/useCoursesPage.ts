@@ -13,9 +13,6 @@ export function useCoursesPage() {
   const status = ref<CourseStatusFilter>('Все')
   const access = ref<CourseAccessFilter>('Все курсы')
   const createDialogOpen = ref(false)
-  const joinDialogOpen = ref(false)
-  const joining = ref(false)
-  const joinError = ref('')
   const selectedForDelete = ref<Course | null>(null)
   const deleting = ref(false)
   const deleteError = ref('')
@@ -42,20 +39,6 @@ export function useCoursesPage() {
     await router.push(`/app/courses/${id}`)
   }
 
-  async function joinCourse(code: string): Promise<void> {
-    joining.value = true
-    joinError.value = ''
-    try {
-      const id = await store.joinCourse(code)
-      joinDialogOpen.value = false
-      access.value = 'Я прохожу'
-      await router.push(`/preview/courses/${id}`)
-    } catch (error) {
-      joinError.value = error instanceof Error ? error.message : 'Не удалось присоединиться к курсу'
-    } finally {
-      joining.value = false
-    }
-  }
 
   function openDeleteDialog(course: Course): void {
     selectedForDelete.value = course
@@ -84,15 +67,11 @@ export function useCoursesPage() {
     statusOptions,
     accessOptions,
     createDialogOpen,
-    joinDialogOpen,
-    joining,
-    joinError,
     selectedForDelete,
     deleting,
     deleteError,
     filteredCourses,
     createCourse,
-    joinCourse,
     openDeleteDialog,
     confirmDelete,
   }

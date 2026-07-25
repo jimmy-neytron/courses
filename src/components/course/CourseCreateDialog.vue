@@ -4,7 +4,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
-import AppModal from '@/components/AppModal.vue'
+import UiModal from '@/components/ui/UiModal.vue'
 import FormField from '@/components/common/FormField.vue'
 import {
   courseTemplates,
@@ -40,7 +40,7 @@ function submit(): void {
 </script>
 
 <template>
-  <AppModal title="Новый курс" @close="emit('close')">
+  <UiModal title="Новый курс" @close="emit('close')">
     <form class="form course-create-form" @submit.prevent="submit">
       <FormField label="Основа курса">
         <UiSelect
@@ -104,7 +104,7 @@ function submit(): void {
         <UiButton type="submit" :disabled="!form.title.trim()">Создать курс</UiButton>
       </div>
     </form>
-  </AppModal>
+  </UiModal>
 </template>
 
 <style scoped>

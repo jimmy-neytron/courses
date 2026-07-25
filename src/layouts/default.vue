@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Menu } from 'lucide-vue-next'
-import AppSidebar from '@/components/AppSidebar.vue'
+import AppSidebar from '@/components/app/AppSidebar.vue'
 import AppDataBoundary from '@/components/common/AppDataBoundary.vue'
 import { useCourseStore } from '@/stores/courses'
 import { useLayoutStore } from '@/stores/layout'

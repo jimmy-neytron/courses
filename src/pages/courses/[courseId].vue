@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { AlertTriangle, ArrowLeft, BookOpen, Trash2 } from 'lucide-vue-next'
+import { AlertTriangle, BookOpen, Trash2 } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import DefaultLayout from '@/layouts/default.vue'
-import AppModal from '@/components/AppModal.vue'
+import UiModal from '@/components/ui/UiModal.vue'
 import FormField from '@/components/common/FormField.vue'
+import AppBreadcrumbs from '@/components/app/AppBreadcrumbs.vue'
 import CourseCurriculum from '@/components/course/CourseCurriculum.vue'
 import CourseDeleteDialog from '@/components/course/CourseDeleteDialog.vue'
 import CourseHero from '@/components/course/CourseHero.vue'
-import CourseInviteDialog from '@/components/course/CourseInviteDialog.vue'
 import CourseOverview from '@/components/course/CourseOverview.vue'
 import CourseSettingsForm from '@/components/course/CourseSettingsForm.vue'
 import CourseTabs from '@/components/course/CourseTabs.vue'
@@ -25,9 +25,6 @@ const {
   lessonDialogOpen,
   deleteDialogOpen,
   deleteLessonsDialogOpen,
-  inviteDialogOpen,
-  inviteRefreshing,
-  inviteError,
   moduleTitle,
   lessonTitle,
   orderSaving,
@@ -51,9 +48,10 @@ const {
   requestDeleteSelectedLessons,
   deleteSelectedLessons,
   saveSettings,
-  publishCourse,
+  toggleCourseStatus,
+  toggleModuleStatus,
+  toggleLessonStatus,
   deleteCourse,
-  refreshInviteCode,
 } = useCourseDetails()
 </script>
 
@@ -61,38 +59,37 @@ const {
   <DefaultLayout>
     <template v-if="course">
       <div class="product-course">
-        <div class="product-breadcrumb"><RouterLink to="/app/courses"><ArrowLeft />Курсы</RouterLink><span>/</span><span>{{ course.title }}</span></div>
-        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @publish="publishCourse" @delete="deleteDialogOpen = true" @invite="inviteDialogOpen = true" />
+        <AppBreadcrumbs :items="[{ label: 'Курсы', to: '/app/courses' }, { label: course.title }]" />
+        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @toggle-status="toggleCourseStatus" @delete="deleteDialogOpen = true" />
         <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
         <CourseTabs v-if="canManage" v-model="tab" />
-        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" :selection-mode="selectionMode" :selected-lesson-ids="selectedLessonIds" :deleting-lessons="deletingLessons" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" @toggle-selection-mode="toggleSelectionMode" @toggle-lesson="toggleLessonSelection" @toggle-module-lessons="toggleModuleLessons" @delete-selected="requestDeleteSelectedLessons" />
+        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" :selection-mode="selectionMode" :selected-lesson-ids="selectedLessonIds" :deleting-lessons="deletingLessons" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" @toggle-module-status="toggleModuleStatus" @toggle-lesson-status="toggleLessonStatus" @toggle-selection-mode="toggleSelectionMode" @toggle-lesson="toggleLessonSelection" @toggle-module-lessons="toggleModuleLessons" @delete-selected="requestDeleteSelectedLessons" />
         <CourseOverview v-else-if="!canManage || tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
         <CourseSettingsForm v-else-if="canManage" :course="course" :saved="saved" @save="saveSettings" />
       </div>
 
-      <AppModal v-if="moduleDialogOpen" title="Новый модуль" @close="moduleDialogOpen = false">
+      <UiModal v-if="moduleDialogOpen" title="Новый модуль" @close="moduleDialogOpen = false">
         <form class="form" @submit.prevent="createModule">
           <FormField label="Название модуля"><UiInput v-model="moduleTitle" autofocus placeholder="Например, Week 9 · Fluency" fluid /></FormField>
           <div class="form-actions"><UiButton type="button" severity="secondary" outlined @click="moduleDialogOpen = false">Отмена</UiButton><UiButton type="submit">Добавить модуль</UiButton></div>
         </form>
-      </AppModal>
+      </UiModal>
 
-      <AppModal v-if="lessonDialogOpen" title="Новый урок" @close="lessonDialogOpen = false">
+      <UiModal v-if="lessonDialogOpen" title="Новый урок" @close="lessonDialogOpen = false">
         <form class="form" @submit.prevent="createLesson">
           <FormField label="Название урока"><UiInput v-model="lessonTitle" autofocus placeholder="Например, Negotiation skills" fluid /></FormField>
           <div class="form-actions"><UiButton type="button" severity="secondary" outlined @click="lessonDialogOpen = false">Отмена</UiButton><UiButton type="submit">Создать и открыть</UiButton></div>
         </form>
-      </AppModal>
+      </UiModal>
 
-      <AppModal v-if="deleteLessonsDialogOpen" title="Удалить выбранные уроки" @close="deletingLessons || (deleteLessonsDialogOpen = false)">
+      <UiModal v-if="deleteLessonsDialogOpen" title="Удалить выбранные уроки" @close="deletingLessons || (deleteLessonsDialogOpen = false)">
         <div class="bulk-lesson-delete">
           <div class="bulk-lesson-delete-warning"><AlertTriangle /><div><strong>Удалить уроки: {{ selectedLessonIds.length }}?</strong><p>Уроки и все их блоки будут удалены без возможности восстановления.</p></div></div>
           <div class="form-actions"><UiButton severity="secondary" outlined :disabled="deletingLessons" @click="deleteLessonsDialogOpen = false">Отмена</UiButton><UiButton severity="danger" :loading="deletingLessons" @click="deleteSelectedLessons"><Trash2 />Удалить</UiButton></div>
         </div>
-      </AppModal>
+      </UiModal>
 
       <CourseDeleteDialog v-if="deleteDialogOpen" :course="course" :pending="deleting" :error="deleteError" @close="deleteDialogOpen = false" @confirm="deleteCourse" />
-      <CourseInviteDialog v-if="inviteDialogOpen" :course="course" :refreshing="inviteRefreshing" :error="inviteError" @close="inviteDialogOpen = false" @regenerate="refreshInviteCode" />
     </template>
     <section v-else class="product-empty full"><BookOpen /><h2>Курс не найден</h2><RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink></section>
   </DefaultLayout>

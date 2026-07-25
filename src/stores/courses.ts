@@ -7,7 +7,6 @@ import { isSupabaseConfigured } from '@/services/supabase'
 import { uploadLessonAudio } from '@/services/lesson-audio.service'
 import { uploadLessonPdf } from '@/services/lesson-pdf.service'
 import { deleteLessonAssets, releaseLessonObjectUrls } from '@/services/lesson-assets.service'
-import { joinCourseByCode, regenerateCourseInvite } from '@/services/course-access.service'
 import {
   clearDemoCourses,
   readCourseCache,
@@ -23,6 +22,7 @@ import {
   createModuleRecord,
   deleteBlockRecord,
   deleteCourseRecord,
+  draftCourseRecord,
   deleteLessonRecords,
   listCourses,
   publishCourseRecord,
@@ -32,6 +32,7 @@ import {
   updateBlockRecord,
   updateCourseRecord,
   updateLessonRecord,
+  updateModuleStatusRecord,
 } from '@/services/course-repository.service'
 
 const demoCourses: Course[] = []
@@ -208,7 +209,6 @@ export const useCourseStore = defineStore('courses', () => {
         ownerId: 'demo-user',
         accessRole: 'creator',
         creator: { id: 'demo-user', name: 'Вы' },
-        joinCode: `DEMO${String(Date.now()).slice(-6)}`,
         kind: input.kind,
         languageCode: input.languageCode,
         sourceLevel: input.sourceLevel,
@@ -244,31 +244,13 @@ export const useCourseStore = defineStore('courses', () => {
     return id
   }
 
-  async function joinCourse(code: string): Promise<string> {
-    if (!isSupabaseConfigured) throw new Error('Подключите Supabase, чтобы присоединяться к курсам')
-    const courseId = await joinCourseByCode(code)
-    await hydrate(true)
-    return courseId
-  }
-
-  async function refreshJoinCode(courseId: string): Promise<string> {
-    const course = findCourse(courseId)
-    if (!course || course.accessRole !== 'creator') throw new Error('Только автор может менять код приглашения')
-    if (!isSupabaseConfigured) {
-      course.joinCode = `DEMO${String(Date.now()).slice(-6)}`
-      return course.joinCode
-    }
-
-    course.joinCode = await regenerateCourseInvite(courseId)
-    return course.joinCode
-  }
 
   async function addModule(courseId: string, title = 'Новый модуль'): Promise<void> {
     const course = findCourse(courseId)
     if (!course) return
 
     if (!isSupabaseConfigured) {
-      course.modules.push({ id: `module-${Date.now()}`, title, open: true, lessons: [] })
+      course.modules.push({ id: `module-${Date.now()}`, title, open: true, status: 'Черновик', lessons: [] })
       return
     }
 
@@ -346,6 +328,7 @@ export const useCourseStore = defineStore('courses', () => {
       id: localId('module'),
       title: duplicateTitle(sourceModule.title),
       open: true,
+      status: 'Черновик',
       lessons: sourceModule.lessons.map((lesson) => duplicateLocalLesson(lesson)),
     }
     course.modules.splice(moduleIndex + 1, 0, optimisticCopy)
@@ -495,15 +478,34 @@ export const useCourseStore = defineStore('courses', () => {
     if (isSupabaseConfigured) await deleteCourseRecord(courseId)
     courses.value.splice(index, 1)
   }
-  async function publishCourse(courseId: string): Promise<void> {
+  async function setCourseStatus(courseId: string, status: Course['status']): Promise<void> {
+    const course = findCourse(courseId)
+    if (!course) return
     if (!isSupabaseConfigured) {
-      const course = findCourse(courseId)
-      if (course) course.status = 'Опубликован'
+      course.status = status
+      course.modules.forEach((module) => {
+        module.status = status
+        module.lessons.forEach((lesson) => { lesson.status = status })
+      })
       return
     }
-
-    await publishCourseRecord(courseId)
+    if (status === 'Опубликован') await publishCourseRecord(courseId)
+    else await draftCourseRecord(courseId)
     await hydrate(true)
+  }
+  async function setModuleStatus(courseId: string, moduleId: string, status: Course['status']): Promise<void> {
+    const module = findCourse(courseId)?.modules.find((item) => item.id === moduleId)
+    if (!module) return
+    const previous = module.status
+    module.status = status
+    try { if (isSupabaseConfigured) await updateModuleStatusRecord(moduleId, status) } catch (error) { module.status = previous; throw error }
+  }
+  async function setLessonStatus(lessonId: string, status: Course['status']): Promise<void> {
+    const lesson = findLesson(lessonId)?.lesson
+    if (!lesson) return
+    const previous = lesson.status
+    lesson.status = status
+    try { await saveLesson(lessonId) } catch (error) { lesson.status = previous; throw error }
   }
   async function persistCourseOrder(courseId: string): Promise<void> {
     const course = findCourse(courseId)
@@ -531,8 +533,6 @@ export const useCourseStore = defineStore('courses', () => {
     findLesson,
     hydrate,
     createCourse,
-    joinCourse,
-    refreshJoinCode,
     addModule,
     addLesson,
     duplicateLesson,
@@ -547,7 +547,9 @@ export const useCourseStore = defineStore('courses', () => {
     removeBlock,
     saveCourse,
     deleteCourse,
-    publishCourse,
+    setCourseStatus,
+    setModuleStatus,
+    setLessonStatus,
     persistCourseOrder,
     persistBlockOrder,
     resetDemo,

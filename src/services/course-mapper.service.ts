@@ -136,16 +136,16 @@ function mapLesson(row: DatabaseRow, kind: CourseKind): Lesson {
 
 export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course {
   const kind: CourseKind = row.source_level || row.target_level ? 'language' : 'general'
-  const modules = asRows(row.course_modules).sort(byPosition).map((module) => ({
+  const modules: Course['modules'] = asRows(row.course_modules).sort(byPosition).map((module) => ({
     id: String(module.id),
     title: String(module.title),
     open: true,
+    status: module.is_published ? 'Опубликован' : 'Черновик',
     lessons: asRows(module.lessons).sort(byPosition).map((lesson) => mapLesson(lesson, kind)),
   }))
 
   const ownerId = String(row.owner_id ?? '')
   const owner = asRecord(row.owner)
-  const invite = asRows(row.course_invites)[0]
   const totalSessions = modules.reduce((total, module) => total + module.lessons.length, 0)
   const checkpointCount = modules.reduce((total, module) => total + module.lessons.filter(
     (lesson) => lesson.blocks.filter((block) => block.type === 'single_choice').length >= 12,
@@ -164,7 +164,6 @@ export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course 
       name: String(owner.display_name ?? (ownerId === currentUserId ? 'Вы' : 'Автор курса')),
       avatarUrl: String(owner.avatar_url ?? '') || undefined,
     },
-    joinCode: invite ? String(invite.code ?? '') || undefined : undefined,
     kind,
     languageCode: languageCode && languageCode !== 'und' ? languageCode : undefined,
     sourceLevel: String(row.source_level ?? '') || undefined,

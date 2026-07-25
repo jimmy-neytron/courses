@@ -1,33 +1,38 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import { GripVertical, MessageSquare, Plus } from 'lucide-vue-next'
+import { Plus } from 'lucide-vue-next'
 import UiInput from '@/components/ui/UiInput.vue'
-import LessonAudioPlayer from '@/components/lesson/LessonAudioPlayer.vue'
-import LessonPdfViewer from '@/components/lesson/LessonPdfViewer.vue'
-import LessonBlockContextMenu from '@/components/lesson/editor/LessonBlockContextMenu.vue'
-import { getLessonBlockCatalogItem, lessonBlockLabels } from '@/components/lesson/editor/lessonBlockCatalog'
+import LessonEditorBlockCard from '@/components/lesson/editor/LessonEditorBlockCard.vue'
 import { resolveLessonBlockSection } from '@/composables/useCourseSections'
 import type { Lesson, LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
 
 const props = defineProps<{ lesson: Lesson; sections: LessonSectionConfig[]; error?: string }>()
 const blocks = defineModel<LessonBlock[]>('blocks', { required: true })
 const selectedId = defineModel<string>('selectedId', { required: true })
-const emit = defineEmits<{
-  reorder: []
-  addAt: [index?: number]
-  assign: [block: LessonBlock, sectionId: LessonSectionId]
-  remove: [block: LessonBlock]
-  change: []
-}>()
-
-const selected = computed(() => blocks.value.find((item) => item.id === selectedId.value) ?? blocks.value[0])
-const selectedIndex = computed(() => selected.value ? blocks.value.findIndex((item) => item.id === selected.value?.id) : -1)
+const emit = defineEmits<{ reorder: []; addAt: [index?: number, sectionId?: LessonSectionId]; assign: [block: LessonBlock, sectionId: LessonSectionId]; remove: [block: LessonBlock]; change: [] }>()
 const courseKind = computed(() => props.sections.some((section) => section.id === 'content') ? 'general' : 'language')
+const orderedSections = computed(() => [...props.sections].sort((left, right) => left.order - right.order))
+const selectedIndex = computed(() => blocks.value.findIndex((item) => item.id === selectedId.value))
+const activeSectionId = ref<LessonSectionId>('')
+const selectedSectionId = computed(() => {
+  const block = blocks.value.find((item) => item.id === selectedId.value)
+  return block ? resolveLessonBlockSection(block, props.sections, courseKind.value) : ''
+})
+const activeSection = computed(() => orderedSections.value.find((section) => section.id === activeSectionId.value) ?? orderedSections.value[0])
 
-function sectionLabel(block: LessonBlock): string {
-  const sectionId = resolveLessonBlockSection(block, props.sections, courseKind.value)
-  return props.sections.find((section) => section.id === sectionId)?.label ?? sectionId
+watch([orderedSections, selectedSectionId], ([sections, selectedSection]) => {
+  if (selectedSection && sections.some((section) => section.id === selectedSection)) activeSectionId.value = selectedSection
+  else if (!sections.some((section) => section.id === activeSectionId.value)) activeSectionId.value = sections[0]?.id ?? ''
+}, { immediate: true })
+
+function sectionBlocks(sectionId: LessonSectionId): LessonBlock[] { return blocks.value.filter((block) => resolveLessonBlockSection(block, props.sections, courseKind.value) === sectionId) }
+function globalIndex(block: LessonBlock): number { return blocks.value.findIndex((item) => item.id === block.id) }
+function lastSectionIndex(sectionId: LessonSectionId): number { return blocks.value.reduce((last, block, index) => resolveLessonBlockSection(block, props.sections, courseKind.value) === sectionId ? index : last, -1) }
+function reorderSection(sectionId: LessonSectionId, reordered: LessonBlock[]): void {
+  const queue = [...reordered]
+  blocks.value = blocks.value.map((block) => resolveLessonBlockSection(block, props.sections, courseKind.value) === sectionId ? queue.shift()! : block)
+  emit('reorder')
 }
 </script>
 
@@ -35,74 +40,26 @@ function sectionLabel(block: LessonBlock): string {
   <main class="product-canvas">
     <div v-if="error" class="product-alert is-error">{{ error }}</div>
     <div class="editor-document-head">
-      <div>
-        <span>Урок · {{ lesson.duration }} минут · {{ blocks.filter((block) => block.type === 'single_choice').length }} вопросов</span>
-        <UiInput v-model="lesson.title" aria-label="Название урока" :spellcheck="false" @update:model-value="emit('change')" />
-        <p>Выберите блок для редактирования справа. Перетаскивайте блоки за маркер слева.</p>
-      </div>
-      <button class="editor-document-add" @click="emit('addAt', selectedIndex)"><Plus />Добавить блок</button>
+      <div><span>Урок · {{ lesson.duration }} минут · {{ blocks.filter((block) => block.type === 'single_choice').length }} вопросов</span><UiInput v-model="lesson.title" aria-label="Название урока" :spellcheck="false" @update:model-value="emit('change')" /><p>Выберите раздел, чтобы работать только с его блоками. Раздел блока можно изменить через контекстное меню.</p></div>
+      <button class="editor-document-add" @click="emit('addAt', selectedIndex, activeSection?.id)"><Plus />Добавить блок</button>
     </div>
 
-    <VueDraggable
-      v-model="blocks"
-      item-key="id"
-      handle=".block-drag-handle"
-      :animation="180"
-      ghost-class="drag-ghost"
-      :force-fallback="true"
-      chosen-class="drag-chosen"
-      class="editor-block-list"
-      @end="emit('reorder')"
-    >
-      <LessonBlockContextMenu
-        v-for="(item, index) in blocks"
-        :key="item.id"
-        :block-label="lessonBlockLabels[item.type]"
-        :block-number="index + 1"
-        :sections="sections"
-        :active-section-id="resolveLessonBlockSection(item, props.sections, courseKind)"
-        @assign="sectionId => emit('assign', item, sectionId)"
-        @add-below="emit('addAt', index)"
-        @remove="emit('remove', item)"
-      >
-        <article
-          :data-block-id="item.id"
-          :class="['product-editor-block', selected?.id === item.id && 'is-selected']"
-          @click="selectedId = item.id"
-          @contextmenu="selectedId = item.id"
-        >
-          <button class="drag-handle block-drag-handle" aria-label="Переместить блок"><GripVertical /></button>
-          <div class="editor-block-number">{{ String(index + 1).padStart(2, '0') }}</div>
-          <div class="editor-block-content">
-            <div class="editor-block-kicker"><span>{{ lessonBlockLabels[item.type] }}</span><small>{{ sectionLabel(item) }}</small></div>
-            <h2 v-if="item.type === 'heading'">{{ item.content }}</h2>
-            <p v-else-if="item.type === 'text'">{{ item.content }}</p>
-            <aside v-else-if="item.type === 'callout'"><UiAlertSquare /><div><strong>{{ item.title }}</strong><p>{{ item.content }}</p></div></aside>
-            <section v-else-if="['grammar','vocabulary','conversation','flashcards','error_correction','translation','practice'].includes(item.type)" class="editor-theory">
-              <component :is="getLessonBlockCatalogItem(item.type).icon" />
-              <div><strong>{{ item.title }}</strong><p>{{ item.content }}</p></div>
-            </section>
-            <LessonAudioPlayer v-else-if="item.type === 'audio'" :src="item.audioUrl" :title="item.title" :transcript="item.transcript" />
-            <LessonPdfViewer v-else-if="item.type === 'pdf'" :url="item.fileUrl" :title="item.title" :file-name="item.fileName" :file-size="item.fileSize" />
-            <div v-else class="editor-question">
-              <strong>{{ item.content }}</strong>
-              <span v-for="(option, optionIndex) in item.options" :key="`${option}-${optionIndex}`" :class="optionIndex === item.correctOption && 'is-correct'">
-                {{ String.fromCharCode(65 + optionIndex) }}. {{ option }}
-              </span>
-              <small v-if="item.explanation">Разбор: {{ item.explanation }}</small>
-            </div>
-          </div>
-          <button class="editor-block-quick-add" :aria-label="`Добавить блок после ${index + 1}`" title="Добавить блок ниже" @click.stop="emit('addAt', index)"><Plus /></button>
-        </article>
-      </LessonBlockContextMenu>
-    </VueDraggable>
+    <nav v-if="orderedSections.length" class="editor-section-tabs" aria-label="Разделы урока">
+      <button v-for="section in orderedSections" :key="section.id" :class="{ 'is-active': activeSection?.id === section.id }" :aria-pressed="activeSection?.id === section.id" @click="activeSectionId = section.id">
+        <span>{{ section.label }}</span><small>{{ sectionBlocks(section.id).length }}</small><i v-if="!section.visible" title="Скрыт в уроке">Скрыт</i>
+      </button>
+    </nav>
 
-    <section v-if="!blocks.length" class="editor-empty">
-      <Plus />
-      <h2>Начните собирать урок</h2>
-      <p>Добавьте теорию, практику, аудирование или тест.</p>
-      <button @click="emit('addAt', -1)">Выбрать первый блок</button>
-    </section>
-    <button v-else class="editor-insert" @click="emit('addAt', blocks.length - 1)"><Plus />Добавить блок в конец урока</button>
+    <div v-if="activeSection" class="editor-section-list">
+      <section :key="activeSection.id" class="editor-section-group">
+        <div class="editor-section-head"><div><span>{{ String(activeSection.order + 1).padStart(2, '0') }}</span><h2>{{ activeSection.label }}</h2></div><div><small v-if="!activeSection.visible">Скрыт в уроке</small><span>{{ sectionBlocks(activeSection.id).length }} блоков</span></div></div>
+        <VueDraggable :model-value="sectionBlocks(activeSection.id)" item-key="id" handle=".block-drag-handle" :animation="180" ghost-class="drag-ghost" :force-fallback="true" chosen-class="drag-chosen" class="editor-block-list" @update:model-value="reorderSection(activeSection.id, $event)">
+          <LessonEditorBlockCard v-for="item in sectionBlocks(activeSection.id)" :key="item.id" :item="item" :index="globalIndex(item)" :selected="selectedId === item.id" :sections="sections" :course-kind="courseKind" @select="selectedId = item.id" @assign="emit('assign', item, $event)" @add-below="emit('addAt', globalIndex(item), activeSection.id)" @remove="emit('remove', item)" />
+        </VueDraggable>
+        <div v-if="!sectionBlocks(activeSection.id).length" class="editor-section-empty">В этом разделе пока нет блоков</div>
+        <button class="editor-section-add" @click="emit('addAt', lastSectionIndex(activeSection.id), activeSection.id)"><Plus />Добавить блок в раздел</button>
+      </section>
+    </div>
+    <section v-if="!orderedSections.length" class="editor-empty"><Plus /><h2>Создайте первый раздел</h2><p>Откройте «Разделы», чтобы начать собирать урок.</p></section>
   </main>
 </template>

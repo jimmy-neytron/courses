@@ -83,78 +83,6 @@
   justify-content: flex-end;
 }
 
-.course-dialog-intro {
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
-  padding: 15px;
-  border: 1px solid #2a4233;
-  border-radius: 12px;
-  background: #101912;
-}
-
-.course-dialog-intro > svg {
-  width: 21px;
-  height: 21px;
-  flex: none;
-  color: #65dfa0;
-}
-
-.course-dialog-intro > div {
-  display: grid;
-  gap: 4px;
-}
-
-.course-dialog-intro strong {
-  font-size: 13px;
-}
-
-.course-dialog-intro p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.course-join-dialog,
-.course-invite-dialog {
-  display: grid;
-  gap: 18px;
-}
-
-.course-join-dialog .ui-input {
-  min-height: 46px;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
-
-.course-invite-code {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 5px 18px;
-  padding: 16px;
-  border: 1px solid #31523e;
-  border-radius: 12px;
-  background: #0c140f;
-}
-
-.course-invite-code small {
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.course-invite-code strong {
-  grid-column: 1;
-  color: #9af3bf;
-  font-size: 22px;
-  letter-spacing: .12em;
-}
-
-.course-invite-code .ui-button {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
 
 .course-access-denied p {
   max-width: 520px;
@@ -258,12 +186,4 @@
     overflow-x: auto;
   }
 
-  .course-invite-code {
-    grid-template-columns: 1fr;
-  }
-
-  .course-invite-code .ui-button {
-    grid-column: 1;
-    grid-row: auto;
-  }
 }

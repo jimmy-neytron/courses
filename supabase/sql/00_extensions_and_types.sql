@@ -29,13 +29,6 @@ begin
     create type public.attempt_status as enum ('not_started', 'in_progress', 'completed', 'failed');
   end if;
 
-  if not exists (select 1 from pg_type where typname = 'integration_status') then
-    create type public.integration_status as enum ('active', 'disabled');
-  end if;
-
-  if not exists (select 1 from pg_type where typname = 'webhook_event_status') then
-    create type public.webhook_event_status as enum ('pending', 'processing', 'delivered', 'failed', 'cancelled');
-  end if;
 end
 $$;
 

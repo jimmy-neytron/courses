@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check } from 'lucide-vue-next'
-import { lessonSectionIcons } from '@/components/lesson/lessonSectionIcons'
+import { lessonSectionIcons } from '@/components/lesson/player/lessonSectionIcons'
 import type { LessonPlayerSection } from '@/composables/useLessonPlayer'
 import type { LessonSectionId } from '@/types/course'
 

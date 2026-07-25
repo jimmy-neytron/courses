@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
-import CommandPalette from '@/components/CommandPalette.vue'
-import AppNotifications from '@/components/AppNotifications.vue'
+import AppNotifications from '@/components/app/AppNotifications.vue'
 import RouteProgress from '@/components/loading/RouteProgress.vue'
 import { useRecentCourses } from '@/composables/useRecentCourses'
 import { useCourseStore } from '@/stores/courses'
@@ -37,6 +36,5 @@ watch([() => route.fullPath, () => store.courses.length], () => {
 <template>
   <RouteProgress />
   <RouterView />
-  <CommandPalette />
   <AppNotifications />
 </template>

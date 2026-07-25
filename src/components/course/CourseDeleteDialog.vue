@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { AlertTriangle, Trash2 } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
-import AppModal from '@/components/AppModal.vue'
+import UiModal from '@/components/ui/UiModal.vue'
 import type { Course } from '@/types/course'
 
 const props = defineProps<{ course: Course; pending?: boolean; error?: string }>()
@@ -13,7 +13,7 @@ watch(() => props.course.id, () => { confirmation.value = '' })
 </script>
 
 <template>
-  <AppModal title="Удаление курса" @close="emit('close')">
+  <UiModal title="Удаление курса" @close="emit('close')">
     <div class="course-delete-dialog">
       <div class="course-delete-warning">
         <AlertTriangle />
@@ -35,5 +35,5 @@ watch(() => props.course.id, () => { confirmation.value = '' })
         </UiButton>
       </div>
     </div>
-  </AppModal>
+  </UiModal>
 </template>

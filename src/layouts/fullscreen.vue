@@ -8,5 +8,7 @@ const loadingLabel = computed(() => String(route.meta.loadingLabel ?? 'Откр�
 </script>
 
 <template>
-  <AppDataBoundary :label="loadingLabel" fullscreen><slot /></AppDataBoundary>
+  <div class="fullscreen-shell">
+    <AppDataBoundary :label="loadingLabel" fullscreen><slot /></AppDataBoundary>
+  </div>
 </template>

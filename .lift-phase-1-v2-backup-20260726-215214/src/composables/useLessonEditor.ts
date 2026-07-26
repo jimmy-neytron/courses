@@ -7,23 +7,20 @@ import {
 } from 'vue'
 import { useRoute } from 'vue-router'
 import {
+  normalizeRichText,
+  richTextToPlainText,
+} from '@/components/common/richText'
+import {
   createLessonSectionConfig,
   resolveLessonBlockSection,
 } from '@/composables/useCourseSections'
 import { useTransientFlag } from '@/composables/useTransientFlag'
 import { filterLessonBlockCatalog } from '@/data/lesson-block-catalog'
-import {
-  createLessonBlockUpdatePayload,
-  createLessonUpdatePayload,
-  fingerprintLesson,
-  fingerprintLessonBlock,
-  fingerprintLessonBlockPayload,
-  fingerprintLessonPayload,
-} from '@/services/lesson-persistence.service'
 import { useCourseStore } from '@/stores/courses'
 import { useNotificationStore } from '@/stores/notifications'
 import type {
   BlockType,
+  Lesson,
   LessonBlock,
   LessonSectionConfig,
   LessonSectionId,
@@ -41,6 +38,66 @@ type SaveJob =
       snapshot: string
       run: () => Promise<void>
     }
+
+function normalizeSnapshotValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeSnapshotValue)
+  }
+
+  if (value && typeof value === 'object') {
+    const source = value as Record<string, unknown>
+
+    return Object.keys(source)
+      .sort()
+      .reduce<Record<string, unknown>>((result, key) => {
+        const normalized = normalizeSnapshotValue(source[key])
+
+        if (normalized !== undefined) {
+          result[key] = normalized
+        }
+
+        return result
+      }, {})
+  }
+
+  return value
+}
+
+function stableSerialize(value: unknown): string {
+  return JSON.stringify(normalizeSnapshotValue(value))
+}
+
+function serializeLesson(lesson: Lesson): string {
+  return stableSerialize({
+    title: lesson.title,
+    duration: lesson.duration,
+    status: lesson.status,
+  })
+}
+
+function normalizedBlockContent(block: LessonBlock): string {
+  if (
+    block.type === 'heading'
+    || block.type === 'single_choice'
+  ) {
+    return richTextToPlainText(block.content ?? '')
+  }
+
+  return normalizeRichText(block.content ?? '')
+}
+
+function serializeBlock(block: LessonBlock): string {
+  const {
+    audioUrl: _audioUrl,
+    fileUrl: _fileUrl,
+    ...persistedBlock
+  } = block
+
+  return stableSerialize({
+    ...persistedBlock,
+    content: normalizedBlockContent(block),
+  })
+}
 
 export function useLessonEditor() {
   const route = useRoute()
@@ -100,14 +157,14 @@ export function useLessonEditor() {
 
   const currentLessonSnapshot = computed(() => (
     found.value
-      ? fingerprintLesson(found.value.lesson)
+      ? serializeLesson(found.value.lesson)
       : ''
   ))
 
   const dirtyBlockIds = computed(() => (
     blocks.value
       .filter((block) => (
-        fingerprintLessonBlock(block)
+        serializeBlock(block)
         !== savedBlockSnapshots.get(block.id)
       ))
       .map((block) => block.id)
@@ -193,7 +250,7 @@ export function useLessonEditor() {
   function captureBlockSnapshot(block: LessonBlock): void {
     savedBlockSnapshots.set(
       block.id,
-      fingerprintLessonBlock(block),
+      serializeBlock(block),
     )
   }
 
@@ -205,7 +262,7 @@ export function useLessonEditor() {
     const lesson = found.value?.lesson
 
     savedLessonSnapshot.value = lesson
-      ? fingerprintLesson(lesson)
+      ? serializeLesson(lesson)
       : ''
 
     savedBlockSnapshots.clear()
@@ -221,7 +278,7 @@ export function useLessonEditor() {
     { immediate: true },
   )
 
-    async function saveChanges(): Promise<boolean> {
+  async function saveChanges(): Promise<boolean> {
     if (!found.value) return false
     if (!dirty.value) return true
     if (saving.value) return false
@@ -233,18 +290,12 @@ export function useLessonEditor() {
       currentLessonSnapshot.value
       !== savedLessonSnapshot.value
     ) {
-      const payload = createLessonUpdatePayload(
-        found.value.lesson,
-      )
-      const snapshot = fingerprintLessonPayload(payload)
+      const snapshot = currentLessonSnapshot.value
 
       jobs.push({
         kind: 'lesson',
         snapshot,
-        run: () => store.saveLesson(
-          lessonId,
-          payload,
-        ),
+        run: () => store.saveLesson(lessonId),
       })
     }
 
@@ -255,20 +306,13 @@ export function useLessonEditor() {
 
       if (!block) continue
 
-      const payload = createLessonBlockUpdatePayload(block)
-      const snapshot = fingerprintLessonBlockPayload(
-        payload,
-      )
+      const snapshot = serializeBlock(block)
 
       jobs.push({
         kind: 'block',
         blockId,
         snapshot,
-        run: () => store.saveBlock(
-          lessonId,
-          blockId,
-          payload,
-        ),
+        run: () => store.saveBlock(lessonId, blockId),
       })
     }
 
@@ -525,7 +569,7 @@ export function useLessonEditor() {
     }
   }
 
-    async function toggleLessonStatus(): Promise<void> {
+  async function toggleLessonStatus(): Promise<void> {
     if (!found.value) return
 
     if (dirty.value) {
@@ -542,18 +586,12 @@ export function useLessonEditor() {
         : 'Опубликован'
     )
 
-    const payload = createLessonUpdatePayload(
+    const statusSnapshot = serializeLesson(
       found.value.lesson,
-    )
-    const statusSnapshot = fingerprintLessonPayload(
-      payload,
     )
 
     try {
-      await store.saveLesson(
-        found.value.lesson.id,
-        payload,
-      )
+      await store.saveLesson(found.value.lesson.id)
 
       savedLessonSnapshot.value = statusSnapshot
 

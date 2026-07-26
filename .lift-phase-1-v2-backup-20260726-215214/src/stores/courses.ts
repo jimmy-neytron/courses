@@ -1,13 +1,7 @@
-import { computed, ref, watch } from 'vue'
+﻿import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { BlockType, Course, CourseCreateInput, CourseModule, Lesson, LessonBlock, LessonSectionConfig } from '@/types/course'
 import { createLessonSectionConfig } from '@/composables/useCourseSections'
-import {
-  createLessonBlockUpdatePayload,
-  createLessonUpdatePayload,
-  type LessonBlockUpdatePayload,
-  type LessonUpdatePayload,
-} from '@/services/lesson-persistence.service'
 import { useAuthStore } from '@/stores/auth'
 import { isSupabaseConfigured } from '@/services/supabase'
 import { uploadLessonAudio } from '@/services/lesson-audio.service'
@@ -441,48 +435,16 @@ export const useCourseStore = defineStore('courses', () => {
     found.lesson.blocks.push(block)
     fullyLoadedCourseIds.add(found.course.id)
   }
-    async function saveLesson(
-    lessonId: string,
-    payload?: LessonUpdatePayload,
-  ): Promise<void> {
-    if (!isSupabaseConfigured) return
-
+  async function saveLesson(lessonId: string): Promise<void> {
     const lesson = findLesson(lessonId)?.lesson
-    const updatePayload = payload
-      ?? (lesson
-        ? createLessonUpdatePayload(lesson)
-        : undefined)
-
-    if (!updatePayload) return
-
-    await updateLessonRecord(
-      lessonId,
-      updatePayload,
-    )
+    if (!lesson || !isSupabaseConfigured) return
+    await updateLessonRecord(lessonId, lesson)
   }
-    async function saveBlock(
-    lessonId: string,
-    blockId: string,
-    payload?: LessonBlockUpdatePayload,
-  ): Promise<void> {
+  async function saveBlock(lessonId: string, blockId: string): Promise<void> {
     if (!isSupabaseConfigured) return
-
-    const block = findLesson(lessonId)
-      ?.lesson.blocks.find(
-        (item) => item.id === blockId,
-      )
-
-    const updatePayload = payload
-      ?? (block
-        ? createLessonBlockUpdatePayload(block)
-        : undefined)
-
-    if (!updatePayload) return
-
-    await updateBlockRecord(
-      blockId,
-      updatePayload,
-    )
+    const block = findLesson(lessonId)?.lesson.blocks.find((item) => item.id === blockId)
+    if (!block) return
+    await updateBlockRecord(blockId, block)
   }
   async function saveLessonSections(lessonId: string, sections: LessonSectionConfig[]): Promise<void> {
     const found = findLesson(lessonId)

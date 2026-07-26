@@ -1,7 +1,8 @@
-import type {
+﻿import type {
   BlockType,
   Course,
   CourseCreateInput,
+  Lesson,
   LessonBlock,
   LessonSectionConfig,
 } from '@/types/course'
@@ -14,10 +15,6 @@ import {
   serializePublicBlockContent,
   toDatabaseBlockType,
 } from '@/services/lesson-block-content.service'
-import type {
-  LessonBlockUpdatePayload,
-  LessonUpdatePayload,
-} from '@/services/lesson-persistence.service'
 import { requireSupabase } from '@/services/supabase'
 import { slugify } from '@/utils/slugify'
 
@@ -301,25 +298,29 @@ export async function createBlockRecord(
   return String(data.id)
 }
 
-export async function updateLessonRecord(
-  lessonId: string,
-  payload: LessonUpdatePayload,
-): Promise<void> {
+export async function updateLessonRecord(lessonId: string, lesson: Lesson): Promise<void> {
   const { error } = await requireSupabase()
     .from('lessons')
-    .update(payload)
+    .update({
+      title: lesson.title,
+      duration_minutes: lesson.duration,
+      status: lesson.status === 'Опубликован' ? 'published' : 'draft',
+    })
     .eq('id', lessonId)
 
   if (error) throw error
 }
 
-export async function updateBlockRecord(
-  blockId: string,
-  payload: LessonBlockUpdatePayload,
-): Promise<void> {
+export async function updateBlockRecord(blockId: string, block: LessonBlock): Promise<void> {
   const { error } = await requireSupabase()
     .from('lesson_blocks')
-    .update(payload)
+    .update({
+      title: block.title,
+      public_content: serializePublicBlockContent(block),
+      private_content: serializePrivateBlockContent(block),
+      is_required: block.required,
+      schema_version: block.schemaVersion ?? 1,
+    })
     .eq('id', blockId)
 
   if (error) throw error

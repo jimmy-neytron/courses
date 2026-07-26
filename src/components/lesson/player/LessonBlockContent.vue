@@ -8,6 +8,7 @@ import TranslationPractice from '@/components/lesson/player/practice/Translation
 import LessonAudioPlayer from '@/components/lesson/player/LessonAudioPlayer.vue'
 import LessonPdfViewer from '@/components/lesson/player/LessonPdfViewer.vue'
 import RichTextContent from '@/components/common/RichTextContent.vue'
+import { richTextToPlainText } from '@/components/common/richText'
 import type { LessonBlock } from '@/types/course'
 
 defineProps<{ block: LessonBlock }>()
@@ -61,7 +62,9 @@ const emit = defineEmits<{ complete: [] }>()
     @complete="emit('complete')"
   />
   <article v-else :class="['engine-theory-block', block.type]">
-    <h2 v-if="block.type === 'heading'">{{ block.content }}</h2>
+    <h2 v-if="block.type === 'heading'">
+      {{ richTextToPlainText(block.content ?? '') }}
+    </h2>
     <section v-else-if="block.type === 'grammar'">
       <small>Теоретический материал</small>
       <h3>{{ block.title }}</h3>

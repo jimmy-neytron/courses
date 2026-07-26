@@ -11,10 +11,11 @@ import ConversationBlockFields from '@/components/lesson/editor/fields/Conversat
 import ErrorCorrectionBlockFields from '@/components/lesson/editor/fields/ErrorCorrectionBlockFields.vue'
 import FlashcardsBlockFields from '@/components/lesson/editor/fields/FlashcardsBlockFields.vue'
 import TranslationBlockFields from '@/components/lesson/editor/fields/TranslationBlockFields.vue'
+import { richTextToPlainText } from '@/components/common/richText'
 import { lessonBlockLabels } from '@/data/lesson-block-catalog'
 import type { LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
 
-defineProps<{
+const props = defineProps<{
   selected?: LessonBlock
   sections: LessonSectionConfig[]
   selectedSectionId: LessonSectionId
@@ -74,6 +75,17 @@ function onPdfUpload(event: Event): void {
   const file = selectedFile(event)
   if (file) emit('uploadPdf', file)
 }
+
+function plainContent(value?: string): string {
+  return richTextToPlainText(value ?? '')
+}
+
+function updatePlainContent(value?: string): void {
+  if (!props.selected) return
+
+  props.selected.content = value ?? ''
+  emit('change')
+}
 </script>
 
 <template>
@@ -97,8 +109,34 @@ function onPdfUpload(event: Event): void {
           <small class="inspector-help">{{ text.sectionHelp }}</small>
         </label>
         <label>{{ text.title }}<UiInput v-model="selected.title" fluid @update:model-value="emit('change')" /></label>
-        <label v-if="selected.type !== 'audio'">{{ text.description }}
-          <RichTextEditor v-model="selected.content" :min-rows="6" :placeholder="text.contentPlaceholder" @change="emit('change')" />
+        <label v-if="selected.type === 'heading'">
+          Текст заголовка
+          <UiInput
+            :model-value="plainContent(selected.content)"
+            fluid
+            @update:model-value="updatePlainContent"
+          />
+        </label>
+
+        <label v-else-if="selected.type === 'single_choice'">
+          Текст вопроса
+          <UiTextarea
+            :model-value="plainContent(selected.content)"
+            rows="6"
+            auto-resize
+            fluid
+            @update:model-value="updatePlainContent"
+          />
+        </label>
+
+        <label v-else-if="selected.type !== 'audio'">
+          {{ text.description }}
+          <RichTextEditor
+            v-model="selected.content"
+            :min-rows="6"
+            :placeholder="text.contentPlaceholder"
+            @change="emit('change')"
+          />
         </label>
       </section>
 

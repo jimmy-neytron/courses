@@ -67,3 +67,51 @@ export function normalizeRichText(value: string): string {
   if (inlineTags.has(template.content.firstElementChild?.tagName ?? '')) return '<p>' + normalized + '</p>'
   return normalized
 }
+
+export function richTextToPlainText(
+  value: string,
+): string {
+  const source = value.trim()
+
+  if (!source) return ''
+
+  if (typeof document === 'undefined') {
+    return source
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(
+        /<\/(?:p|h2|h3|li|blockquote)>/gi,
+        '\n',
+      )
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#039;/gi, "'")
+      .replace(/\u00a0/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }
+
+  const template = document.createElement('template')
+
+  template.innerHTML = normalizeRichText(source)
+
+  template.content
+    .querySelectorAll('br')
+    .forEach((element) => {
+      element.replaceWith('\n')
+    })
+
+  template.content
+    .querySelectorAll('p,h2,h3,li,blockquote')
+    .forEach((element) => {
+      element.append('\n')
+    })
+
+  return (template.content.textContent ?? '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}

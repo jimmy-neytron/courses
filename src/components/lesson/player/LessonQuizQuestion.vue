@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { BookOpen, CheckCircle2, XCircle } from 'lucide-vue-next'
+import { richTextToPlainText } from '@/components/common/richText'
 import type { LessonBlock } from '@/types/course'
 
 defineProps<{
@@ -18,7 +19,10 @@ const emit = defineEmits<{
 <template>
   <section class="engine-test-question">
     <small>{{ block.title }}</small>
-    <h3>{{ number }}. {{ block.content }}</h3>
+    <h3>
+      {{ number }}.
+      {{ richTextToPlainText(block.content ?? '') }}
+    </h3>
     <button
       v-for="(option, optionIndex) in block.options"
       :key="`${option}-${optionIndex}`"

@@ -1,6 +1,14 @@
-﻿<script setup lang="ts">
-import { ref } from 'vue'
-import { LayoutTemplate, ShieldAlert } from 'lucide-vue-next'
+<script setup lang="ts">
+import {
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
+import {
+  LayoutTemplate,
+  ShieldAlert,
+} from 'lucide-vue-next'
 import FullscreenLayout from '@/layouts/fullscreen.vue'
 import LessonBlockInspector from '@/components/lesson/editor/LessonBlockInspector.vue'
 import LessonBlockOrderDialog from '@/components/lesson/editor/LessonBlockOrderDialog.vue'
@@ -12,51 +20,99 @@ import LessonSectionsDialog from '@/components/lesson/editor/LessonSectionsDialo
 import { useLessonEditor } from '@/composables/useLessonEditor'
 
 const previewOpen = ref(false)
+
 const {
   found,
   blocks,
   activeSectionId,
   selectedId,
   selected,
+
   addQuery,
   insertAfterIndex,
   sectionDraft,
+
   orderSaving,
   uploading,
   sectionSaving,
+
   sectionsDialogOpen,
   blockOrderDialogOpen,
   blockPickerOpen,
+
   editorError,
+  dirty,
   saved,
   isBusy,
+
   pickerPalette,
   availableSections,
   selectedSectionId,
   activeOrderSection,
   orderBlocks,
   correctAnswerOptions,
+
+  saveChanges,
+
   openBlockPicker,
   chooseBlock,
-  scheduleSave,
+
   persistOrder,
   saveBlockOrder,
+
   removeBlock,
   removeSelectedBlock,
+
   assignBlockSection,
   assignSelectedSection,
   updateOptions,
+
   toggleLessonStatus,
   uploadAudio,
   uploadPdf,
+
   openSections,
   saveSections,
 } = useLessonEditor()
+
+function handleBeforeUnload(
+  event: BeforeUnloadEvent,
+): void {
+  if (!dirty.value) return
+
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+onMounted(() => {
+  window.addEventListener(
+    'beforeunload',
+    handleBeforeUnload,
+  )
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener(
+    'beforeunload',
+    handleBeforeUnload,
+  )
+})
+
+onBeforeRouteLeave(() => {
+  if (!dirty.value) return true
+
+  return window.confirm(
+    'Есть несохранённые изменения. Покинуть страницу?',
+  )
+})
 </script>
 
 <template>
   <FullscreenLayout>
-    <div v-if="found?.course.accessRole === 'creator'" class="product-editor">
+    <div
+      v-if="found?.course.accessRole === 'creator'"
+      class="product-editor"
+    >
       <LessonEditorTopbar
         :course-id="found.course.id"
         :course-title="found.course.title"
@@ -64,11 +120,14 @@ const {
         :status="found.lesson.status"
         :busy="isBusy"
         :saved="saved"
+        :dirty="dirty"
         @sections="openSections"
         @order="blockOrderDialogOpen = true"
+        @save="saveChanges"
         @preview="previewOpen = true"
         @toggle-status="toggleLessonStatus"
       />
+
       <LessonEditorCanvas
         v-model:blocks="blocks"
         v-model:selected-id="selectedId"
@@ -80,8 +139,8 @@ const {
         @add-at="openBlockPicker"
         @assign="assignBlockSection"
         @remove="removeBlock"
-        @change="scheduleSave"
       />
+
       <LessonBlockInspector
         :selected="selected"
         :sections="availableSections"
@@ -89,14 +148,17 @@ const {
         :correct-answer-options="correctAnswerOptions"
         :uploading="uploading"
         @section="assignSelectedSection"
-        @change="scheduleSave"
         @options="updateOptions"
         @upload-audio="uploadAudio"
         @upload-pdf="uploadPdf"
         @remove="removeSelectedBlock"
       />
 
-      <LessonPreviewDrawer v-model:visible="previewOpen" :lesson="found.lesson" />
+      <LessonPreviewDrawer
+        v-model:visible="previewOpen"
+        :lesson="found.lesson"
+      />
+
       <LessonBlockOrderDialog
         v-if="blockOrderDialogOpen && activeOrderSection"
         :blocks="orderBlocks"
@@ -106,6 +168,7 @@ const {
         @select="selectedId = $event"
         @save="saveBlockOrder"
       />
+
       <LessonSectionsDialog
         v-if="sectionsDialogOpen"
         v-model="sectionDraft"
@@ -113,6 +176,7 @@ const {
         @close="sectionsDialogOpen = false"
         @save="saveSections"
       />
+
       <LessonBlockPickerDialog
         v-if="blockPickerOpen"
         v-model:query="addQuery"
@@ -122,16 +186,42 @@ const {
         @select="chooseBlock"
       />
     </div>
-    <section v-else-if="found" class="product-empty full course-access-denied">
+
+    <section
+      v-else-if="found"
+      class="product-empty full course-access-denied"
+    >
       <ShieldAlert />
+
       <h2>Редактор доступен только автору</h2>
-      <p>Вы подключены к этому курсу как ученик. Материалы можно проходить, но нельзя изменять.</p>
-      <RouterLink :to="`/preview/courses/${found.course.id}`" class="product-button">Перейти к обучению</RouterLink>
+
+      <p>
+        Вы подключены к этому курсу как ученик.
+        Материалы можно проходить, но нельзя изменять.
+      </p>
+
+      <RouterLink
+        :to="`/preview/courses/${found.course.id}`"
+        class="product-button"
+      >
+        Перейти к обучению
+      </RouterLink>
     </section>
-    <section v-else class="product-empty full">
+
+    <section
+      v-else
+      class="product-empty full"
+    >
       <LayoutTemplate />
+
       <h2>Урок не найден</h2>
-      <RouterLink to="/app/courses" class="product-button">Вернуться к курсам</RouterLink>
+
+      <RouterLink
+        to="/app/courses"
+        class="product-button"
+      >
+        Вернуться к курсам
+      </RouterLink>
     </section>
   </FullscreenLayout>
 </template>

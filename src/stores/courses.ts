@@ -134,7 +134,7 @@ export const useCourseStore = defineStore('courses', () => {
     }
   }
 
-  function refreshCourses(organizationId: string, userId: string, preserveFullCourses = true): Promise<void> {
+  function refreshCourses(organizationId: string, userId: string): Promise<void> {
     if (refreshPromise) return refreshPromise
 
     refreshPromise = (async () => {
@@ -144,13 +144,10 @@ export const useCourseStore = defineStore('courses', () => {
       try {
         const nextCourses = await listCourses(organizationId, userId)
         if (useAuthStore().user?.id !== userId) return
-        courses.value = preserveFullCourses
-          ? nextCourses.map((course) => {
-              const loaded = fullyLoadedCourseIds.has(course.id) ? findCourse(course.id) : undefined
-              return loaded ? { ...course, learningPlan: loaded.learningPlan, modules: loaded.modules } : course
-            })
-          : nextCourses
-        if (!preserveFullCourses) fullyLoadedCourseIds.clear()
+        courses.value = nextCourses.map((course) => {
+          const loaded = fullyLoadedCourseIds.has(course.id) ? findCourse(course.id) : undefined
+          return loaded ? { ...course, learningPlan: loaded.learningPlan, modules: loaded.modules } : course
+        })
         hydratedOrganizationId = organizationId
         hydrated.value = true
         writeCourseCache(organizationId, courses.value)
@@ -184,7 +181,10 @@ export const useCourseStore = defineStore('courses', () => {
         return
       }
       if (!force && hydratedOrganizationId === auth.organization.id) return
-      if (hydratedOrganizationId && hydratedOrganizationId !== auth.organization.id) courses.value = []
+      if (hydratedOrganizationId && hydratedOrganizationId !== auth.organization.id) {
+        courses.value = []
+        fullyLoadedCourseIds.clear()
+      }
 
       if (!force && !courses.value.length) {
         const cached = readCourseCache(auth.organization.id)
@@ -198,7 +198,7 @@ export const useCourseStore = defineStore('courses', () => {
         }
       }
 
-      await refreshCourses(auth.organization.id, auth.user.id, !force)
+      await refreshCourses(auth.organization.id, auth.user.id)
     })()
       .catch((error) => {
         loadError.value = errorMessage(error, 'Не удалось загрузить курсы')
@@ -211,10 +211,10 @@ export const useCourseStore = defineStore('courses', () => {
     return bootstrapPromise
   }
 
-  async function loadAccessibleCourse(courseId: string): Promise<void> {
+  async function loadAccessibleCourse(courseId: string, force = false): Promise<void> {
     if (!courseId || !isSupabaseConfigured) return
     const existing = findCourse(courseId)
-    if (existing && fullyLoadedCourseIds.has(courseId)) return
+    if (!force && existing && fullyLoadedCourseIds.has(courseId)) return
 
     const userId = useAuthStore().user?.id ?? ''
     loadError.value = ''
@@ -299,7 +299,7 @@ export const useCourseStore = defineStore('courses', () => {
     }
 
     await createModuleRecord(courseId, title, course.modules.length)
-    await hydrate(true)
+    await loadAccessibleCourse(courseId, true)
   }
   async function addLesson(courseId: string, moduleId: string, title = 'Новый урок'): Promise<string | undefined> {
     const course = findCourse(courseId)
@@ -326,7 +326,7 @@ export const useCourseStore = defineStore('courses', () => {
       module.lessons.length,
       course.defaultLessonDuration,
     )
-    await hydrate(true)
+    await loadAccessibleCourse(courseId, true)
     return id
   }
   async function duplicateLesson(courseId: string, moduleId: string, lessonId: string): Promise<string | undefined> {
@@ -345,7 +345,7 @@ export const useCourseStore = defineStore('courses', () => {
     try {
       const id = await duplicateLessonRecords(courseId, moduleId, sourceLesson, remotePosition, title)
       optimisticCopy.id = id
-      await hydrate(true)
+      await loadAccessibleCourse(courseId, true)
       const refreshedCourse = findCourse(courseId)
       const refreshedModule = refreshedCourse?.modules.find((item) => item.id === moduleId)
       const copyIndex = refreshedModule?.lessons.findIndex((item) => item.id === id) ?? -1
@@ -384,7 +384,7 @@ export const useCourseStore = defineStore('courses', () => {
       for (const [index, lesson] of sourceModule.lessons.entries()) {
         await duplicateLessonRecords(courseId, copiedModuleId, lesson, index)
       }
-      await hydrate(true)
+      await loadAccessibleCourse(courseId, true)
       const refreshedCourse = findCourse(courseId)
       const copyIndex = refreshedCourse?.modules.findIndex((item) => item.id === copiedModuleId) ?? -1
       if (refreshedCourse && copyIndex >= 0) {
@@ -536,7 +536,7 @@ export const useCourseStore = defineStore('courses', () => {
     }
     if (status === 'Опубликован') await publishCourseRecord(courseId)
     else await draftCourseRecord(courseId)
-    await hydrate(true)
+    await loadAccessibleCourse(courseId, true)
   }
   async function setModuleStatus(courseId: string, moduleId: string, status: Course['status']): Promise<void> {
     const module = findCourse(courseId)?.modules.find((item) => item.id === moduleId)

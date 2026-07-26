@@ -24,6 +24,8 @@ const {
   filteredCourses,
   createCourse,
   openDeleteDialog,
+  shareCourse,
+  toggleCourseStatus,
   confirmDelete,
 } = useCoursesPage()
 
@@ -43,26 +45,26 @@ function closeCreateDialog(): void {
   <DefaultLayout>
     <div class="workspace-page courses-page">
       <section class="catalog-intro is-compact">
-        <div><h1>Курсы</h1><span>{{ filteredCourses.length }} в текущем списке</span></div>
+        <div><h1>РљСѓСЂСЃС‹</h1><span>{{ filteredCourses.length }} РІ С‚РµРєСѓС‰РµРј СЃРїРёСЃРєРµ</span></div>
         <div class="workspace-actions">
-          <UiButton class="catalog-create-button" @click="createDialogOpen = true"><Plus />Новый курс</UiButton>
+          <UiButton class="catalog-create-button" @click="createDialogOpen = true"><Plus />РќРѕРІС‹Р№ РєСѓСЂСЃ</UiButton>
         </div>
       </section>
 
       <section class="catalog-controls is-compact">
-        <label class="catalog-search"><Search /><UiInput v-model="query" placeholder="Найти курс" aria-label="Поиск курсов" /></label>
-        <UiSegmented v-model="access" :options="accessOptions" :allow-empty="false" aria-label="Доступ к курсам" />
-        <UiSegmented v-model="status" :options="statusOptions" :allow-empty="false" aria-label="Статус курса" />
+        <label class="catalog-search"><Search /><UiInput v-model="query" placeholder="РќР°Р№С‚Рё РєСѓСЂСЃ" aria-label="РџРѕРёСЃРє РєСѓСЂСЃРѕРІ" /></label>
+        <UiSegmented v-model="access" :options="accessOptions" :allow-empty="false" aria-label="Р”РѕСЃС‚СѓРї Рє РєСѓСЂСЃР°Рј" />
+        <UiSegmented v-model="status" :options="statusOptions" :allow-empty="false" aria-label="РЎС‚Р°С‚СѓСЃ РєСѓСЂСЃР°" />
       </section>
 
       <section v-if="filteredCourses.length" class="course-grid workspace-course-grid catalog-grid">
-        <CourseCard v-for="course in filteredCourses" :key="course.id" :course="course" deletable @delete="openDeleteDialog" />
+        <CourseCard v-for="course in filteredCourses" :key="course.id" :course="course" actionable @share="shareCourse" @toggle-status="toggleCourseStatus" @delete="openDeleteDialog" />
       </section>
       <section v-else class="workspace-empty catalog-empty">
         <span><BookOpen /></span>
-        <h2>{{ query ? 'Курсы не найдены' : 'Курсов пока нет' }}</h2>
-        <p>{{ query ? 'Измените запрос или фильтры.' : 'Создайте первый курс с любой тематикой.' }}</p>
-        <UiButton v-if="!query" @click="createDialogOpen = true"><Plus />Создать курс</UiButton>
+        <h2>{{ query ? 'РљСѓСЂСЃС‹ РЅРµ РЅР°Р№РґРµРЅС‹' : 'РљСѓСЂСЃРѕРІ РїРѕРєР° РЅРµС‚' }}</h2>
+        <p>{{ query ? 'РР·РјРµРЅРёС‚Рµ Р·Р°РїСЂРѕСЃ РёР»Рё С„РёР»СЊС‚СЂС‹.' : 'РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІС‹Р№ РєСѓСЂСЃ СЃ Р»СЋР±РѕР№ С‚РµРјР°С‚РёРєРѕР№.' }}</p>
+        <UiButton v-if="!query" @click="createDialogOpen = true"><Plus />РЎРѕР·РґР°С‚СЊ РєСѓСЂСЃ</UiButton>
       </section>
 
       <CourseCreateDialog v-if="createDialogOpen" @close="closeCreateDialog" @create="createCourse" />

@@ -1068,3 +1068,126 @@ button:disabled {
 }
 .auth-form .auth-switch-action:hover { color: var(--accent-hover, #34e89a); text-decoration: underline; text-underline-offset: 3px; }
 .auth-form .auth-switch-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
+/* Dropdown menu normalization from @neytron/compact-ui. */
+.ui-dropdown-menu .cui-menu {
+  min-width: 196px;
+  padding: 6px;
+  border-color: #293b30;
+  border-radius: 12px;
+  background: #0d1410;
+  box-shadow: 0 18px 55px #000a;
+}
+.ui-dropdown-menu .cui-menu__item {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  border-radius: 9px;
+  color: #dce8e0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ui-dropdown-menu .cui-menu__item:hover,
+.ui-dropdown-menu .cui-menu__item:focus-visible {
+  background: #00dc8214;
+  color: #8ceeb5;
+}
+.ui-dropdown-menu .cui-menu__item svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+.ui-dropdown-menu .cui-menu__item[data-danger='true'] {
+  color: #ff858b;
+}
+.ui-dropdown-menu .cui-menu__item[data-danger='true']:hover,
+.ui-dropdown-menu .cui-menu__item[data-danger='true']:focus-visible {
+  background: #ff737b18;
+  color: #ff9da2;
+}
+.course-hero-menu .cui-menu {
+  inset-inline: auto 0;
+}
+.product-course-actions.is-menu-only {
+  max-width: none;
+  justify-content: flex-end;
+  align-self: start;
+}
+.product-course-actions.is-menu-only .ui-button {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+}
+
+/* Course hero overflow menu lives in the top-right corner of the card. */
+.product-course-hero {
+  position: relative;
+}
+.product-course-actions.is-menu-only {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 18px;
+  max-width: none;
+  padding: 0;
+}
+@media (max-width: 760px) {
+  .product-course-actions.is-menu-only {
+    top: 14px;
+    right: 14px;
+    width: auto;
+  }
+}
+
+/* Course card overflow actions. */
+.course-card {
+  position: relative;
+}
+.course-card-menu {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  right: 12px;
+}
+.course-card-menu .ui-button,
+.course-actions-menu.is-compact .ui-button {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border-color: #ffffff24;
+  background: #08100bcc;
+  color: #eef8f2;
+  backdrop-filter: blur(10px);
+}
+.course-card-menu .ui-button:hover,
+.course-actions-menu.is-compact .ui-button:hover {
+  border-color: #00dc8270;
+  background: #0f1d15e6;
+}
+.course-actions-menu .cui-menu {
+  inset-inline: auto 0;
+}
+
+/* Overflow menus must be visible outside course cards. */
+.product-course-hero,
+.product-course-card,
+.course-card {
+  overflow: visible !important;
+}
+.course-card-link,
+.product-course-card .cover,
+.product-course-card .course-body {
+  overflow: hidden;
+}
+.product-course-actions.is-menu-only,
+.course-card-menu,
+.course-actions-menu,
+.course-actions-menu .cui-overlay-anchor {
+  z-index: 50;
+}
+.course-actions-menu .cui-menu {
+  z-index: 60;
+}

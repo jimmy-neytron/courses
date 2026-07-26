@@ -1,4 +1,4 @@
-﻿/* Lesson editor: dense enough for authoring, readable enough for long sessions. */
+/* Lesson editor: dense enough for authoring, readable enough for long sessions. */
 .product-editor {
   grid-template-columns: minmax(540px, 1fr) 380px;
   grid-template-rows: 68px minmax(0, 1fr);
@@ -766,3 +766,61 @@
 @media (max-width: 760px) { .block-order-item { grid-template-columns: 32px 32px minmax(0, 1fr); } .block-order-section { grid-column: 3; justify-self: start; max-width: 100%; } }
 
 .block-order-item.is-section-only { grid-template-columns: 34px 38px minmax(0, 1fr); }
+
+/* Wider inspector for rich text editing. */
+.product-editor {
+  grid-template-columns: minmax(520px, 1fr) 480px;
+}
+.product-inspector {
+  padding-inline: 18px;
+}
+@media (max-width: 1280px) {
+  .product-editor {
+    grid-template-columns: minmax(500px, 1fr) 430px;
+  }
+}
+@media (max-width: 980px) {
+  .product-editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Keep editor actions visible while authoring long lessons. */
+.product-editor {
+  overflow: hidden;
+}
+.product-editor-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  grid-column: 1 / -1;
+  flex: 0 0 auto;
+  box-shadow: 0 10px 28px #0007;
+}
+.product-canvas,
+.product-inspector {
+  min-height: 0;
+  max-height: calc(100dvh - 68px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.product-canvas {
+  overscroll-behavior: contain;
+}
+.product-inspector {
+  overscroll-behavior: contain;
+}
+@media (max-width: 980px) {
+  .product-editor {
+    overflow: auto;
+  }
+  .product-editor-topbar {
+    position: sticky;
+    top: 0;
+  }
+  .product-canvas,
+  .product-inspector {
+    max-height: none;
+    overflow: visible;
+  }
+}

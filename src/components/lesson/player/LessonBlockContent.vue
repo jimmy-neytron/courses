@@ -7,6 +7,7 @@ import FlashcardDeck from '@/components/lesson/player/practice/FlashcardDeck.vue
 import TranslationPractice from '@/components/lesson/player/practice/TranslationPractice.vue'
 import LessonAudioPlayer from '@/components/lesson/player/LessonAudioPlayer.vue'
 import LessonPdfViewer from '@/components/lesson/player/LessonPdfViewer.vue'
+import RichTextContent from '@/components/common/RichTextContent.vue'
 import type { LessonBlock } from '@/types/course'
 
 defineProps<{ block: LessonBlock }>()
@@ -64,12 +65,13 @@ const emit = defineEmits<{ complete: [] }>()
     <section v-else-if="block.type === 'grammar'">
       <small>Теоретический материал</small>
       <h3>{{ block.title }}</h3>
-      <p>{{ block.content }}</p>
+      <RichTextContent :content="block.content" />
     </section>
     <aside v-else-if="block.type === 'callout'">
       <UiAlertSquare />
-      <div><b>{{ block.title }}</b><p>{{ block.content }}</p></div>
+      <div><b>{{ block.title }}</b><RichTextContent :content="block.content" /></div>
     </aside>
-    <section v-else><h3>{{ block.title }}</h3><p>{{ block.content }}</p></section>
+    <section v-else><h3>{{ block.title }}</h3><RichTextContent :content="block.content" /></section>
   </article>
 </template>
+

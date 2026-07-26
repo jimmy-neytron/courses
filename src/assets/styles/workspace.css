@@ -264,6 +264,7 @@
 
 .workspace-course-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
 .workspace-course-grid .product-course-card {
+  overflow: hidden !important;
   border-color: #223129;
   border-radius: 18px;
   background: #0b110d;

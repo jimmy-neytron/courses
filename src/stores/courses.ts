@@ -431,8 +431,9 @@ export const useCourseStore = defineStore('courses', () => {
       return
     }
 
-    await createBlockRecord(found.course.id, lessonId, type, found.lesson.blocks.length)
-    await hydrate(true)
+    block.id = await createBlockRecord(found.course.id, lessonId, type, found.lesson.blocks.length)
+    found.lesson.blocks.push(block)
+    fullyLoadedCourseIds.add(found.course.id)
   }
   async function saveLesson(lessonId: string): Promise<void> {
     const lesson = findLesson(lessonId)?.lesson

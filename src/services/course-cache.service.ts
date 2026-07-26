@@ -1,4 +1,4 @@
-import type { Course } from '@/types/course'
+﻿import type { Course } from '@/types/course'
 
 const SUPABASE_CACHE_PREFIX = 'course-platform-cache-v2-'
 const DEMO_CACHE_KEY = 'cursor-courses-v4'
@@ -48,7 +48,8 @@ export function clearDemoCourses(): void {
 }
 
 export function readCourseCache(organizationId: string): Course[] {
-  return parseCourses(sessionStorage.getItem(SUPABASE_CACHE_PREFIX + organizationId))
+  void organizationId
+  return []
 }
 
 export function writeCourseCache(organizationId: string, courses: Course[]): void {

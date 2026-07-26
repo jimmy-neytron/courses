@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCourseStore } from '@/stores/courses'
+import { useNotificationStore } from '@/stores/notifications'
 import type { Course, CourseCreateInput, CourseStatus } from '@/types/course'
 
 export type CourseStatusFilter = CourseStatus | 'Все'
@@ -8,6 +9,7 @@ export type CourseAccessFilter = 'Все курсы' | 'Созданные мн�
 
 export function useCoursesPage() {
   const store = useCourseStore()
+  const notifications = useNotificationStore()
   const router = useRouter()
   const query = ref('')
   const status = ref<CourseStatusFilter>('Все')
@@ -31,12 +33,14 @@ export function useCoursesPage() {
   })
 
   async function createCourse(input: CourseCreateInput): Promise<void> {
-    const id = await store.createCourse({
-      ...input,
-      description: input.description || 'Новая учебная программа',
-    })
-    createDialogOpen.value = false
-    await router.push(`/app/courses/${id}`)
+    try {
+      const id = await store.createCourse({ ...input, description: input.description || 'Новая учебная программа' })
+      createDialogOpen.value = false
+      notifications.success('Курс создан')
+      await router.push(`/app/courses/${id}`)
+    } catch (error) {
+      notifications.error(error instanceof Error ? error.message : 'Не удалось создать курс')
+    }
   }
 
 
@@ -53,8 +57,10 @@ export function useCoursesPage() {
     try {
       await store.deleteCourse(selectedForDelete.value.id)
       selectedForDelete.value = null
+      notifications.success('Курс удалён')
     } catch (error) {
       deleteError.value = error instanceof Error ? error.message : 'Не удалось удалить курс'
+      notifications.error(deleteError.value)
     } finally {
       deleting.value = false
     }

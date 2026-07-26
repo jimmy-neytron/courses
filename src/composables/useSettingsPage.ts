@@ -1,11 +1,13 @@
 import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useTransientFlag } from '@/composables/useTransientFlag'
+import { useNotificationStore } from '@/stores/notifications'
 
 const heading = { title: 'Настройки', description: 'Профиль и рабочее пространство.' }
 
 export function useSettingsPage() {
   const auth = useAuthStore()
+  const notifications = useNotificationStore()
   const profileName = ref('')
   const { value: saved, show: showSaved } = useTransientFlag()
 
@@ -14,8 +16,13 @@ export function useSettingsPage() {
   }, { immediate: true })
 
   async function saveProfile() {
-    await auth.updateProfile(profileName.value)
-    showSaved()
+    try {
+      await auth.updateProfile(profileName.value)
+      showSaved()
+      notifications.success('Профиль сохранён')
+    } catch (error) {
+      notifications.error(error instanceof Error ? error.message : 'Не удалось сохранить профиль')
+    }
   }
 
   return { auth, heading, profileName, saved, saveProfile }

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { toRef } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCircle2 } from 'lucide-vue-next'
@@ -9,7 +9,7 @@ import { lessonSectionIcons } from '@/components/lesson/player/lessonSectionIcon
 import { useLessonPlayer } from '@/composables/useLessonPlayer'
 import type { Lesson } from '@/types/course'
 
-const props = defineProps<{ lesson: Lesson }>()
+const props = defineProps<{ lesson: Lesson; courseId?: string }>()
 const {
   activeSectionId,
   answers,
@@ -24,12 +24,15 @@ const {
   previousLesson,
   nextLesson,
   canFinish,
+  trackingEnabled,
   isCompleted,
   markSection,
+  toggleSection,
   answerQuestion,
   questionNumber,
   finishLesson,
-} = useLessonPlayer(toRef(props, 'lesson'))
+  lessonHref,
+} = useLessonPlayer(toRef(props, 'lesson'), toRef(props, 'courseId'))
 </script>
 
 <template>
@@ -40,7 +43,8 @@ const {
         <h1>{{ lesson.title }}</h1>
         <p>{{ sections.length }} разделов · {{ questions.length }} вопросов</p>
       </div>
-      <span v-if="isCompleted" class="engine-complete"><CheckCircle2 />Урок завершён</span>
+      <span v-if="!trackingEnabled" class="engine-guest-note">Гостевой просмотр · прогресс не сохраняется</span>
+      <span v-else-if="isCompleted" class="engine-complete"><CheckCircle2 />Урок завершён</span>
     </header>
 
     <LessonSectionNav
@@ -77,9 +81,15 @@ const {
         <p v-if="answeredCount < questions.length">Осталось ответить: {{ questions.length - answeredCount }}</p>
         <p v-else>{{ correctCount === questions.length ? 'Все ответы верны' : 'Изучите объяснения и попробуйте ещё раз' }}</p>
       </div>
-      <button v-if="!currentQuestions.length" class="engine-section-complete" @click="markSection(currentSection.id)">
+      <button
+        v-if="trackingEnabled"
+        :class="['engine-section-complete', completedSections.includes(currentSection.id) && 'is-complete']"
+        type="button"
+        @click="toggleSection(currentSection.id)"
+      >
         <Check />{{ completedSections.includes(currentSection.id) ? 'Раздел изучен' : 'Я изучил этот раздел' }}
       </button>
+      <span v-else class="engine-guest-footer">Войдите, чтобы сохранять прогресс разделов</span>
     </main>
 
     <section v-else class="product-empty compact">
@@ -89,10 +99,11 @@ const {
     </section>
 
     <footer class="engine-lesson-footer">
-      <RouterLink v-if="previousLesson" :to="`/preview/lessons/${previousLesson.id}`"><ArrowLeft />{{ previousLesson.title }}</RouterLink>
+      <RouterLink v-if="previousLesson" :to="lessonHref(previousLesson)"><ArrowLeft />{{ previousLesson.title }}</RouterLink>
       <span v-else />
-      <button :disabled="!canFinish" @click="finishLesson"><CheckCircle2 />Завершить урок</button>
-      <RouterLink v-if="nextLesson" :to="`/preview/lessons/${nextLesson.id}`">Следующий урок<ArrowRight /></RouterLink>
+      <button v-if="trackingEnabled" :disabled="!canFinish" @click="finishLesson"><CheckCircle2 />Завершить урок</button>
+      <span v-else class="engine-guest-footer">Войдите, чтобы сохранять прогресс</span>
+      <RouterLink v-if="nextLesson" :to="lessonHref(nextLesson)">Следующий урок<ArrowRight /></RouterLink>
       <span v-else />
     </footer>
   </div>

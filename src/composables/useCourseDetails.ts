@@ -197,7 +197,7 @@ export function useCourseDetails() {
     const module = modules.value.find((item) => item.id === moduleId)
     if (!module) return
     const next = module.status === 'Опубликован' ? 'Черновик' : 'Опубликован'
-    await run(() => store.setModuleStatus(course.value!.id, moduleId, next), 'Не удалось изменить статус модуля')
+    await run(() => store.setModuleStatus(course.value!.id, moduleId, next), 'Не удалось изменить статус модуля', next === 'Опубликован' ? 'Модуль опубликован' : 'Модуль возвращён в черновик')
   }
 
   async function toggleLessonStatus(lessonId: string) {
@@ -205,9 +205,22 @@ export function useCourseDetails() {
     const lesson = modules.value.flatMap((module) => module.lessons).find((item) => item.id === lessonId)
     if (!lesson) return
     const next = lesson.status === 'Опубликован' ? 'Черновик' : 'Опубликован'
-    await run(() => store.setLessonStatus(lessonId, next), 'Не удалось изменить статус урока')
+    await run(() => store.setLessonStatus(lessonId, next), 'Не удалось изменить статус урока', next === 'Опубликован' ? 'Урок опубликован' : 'Урок возвращён в черновик')
   }
 
+  async function shareCourse() {
+    if (!course.value) return
+    if (course.value.status !== 'Опубликован') {
+      notifications.info('Сначала опубликуйте курс')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/preview/courses/${course.value.id}`)
+      notifications.success('Ссылка на просмотр скопирована')
+    } catch {
+      notifications.error('Не удалось скопировать ссылку')
+    }
+  }
   async function deleteCourse() {
     if (!course.value || !canManage.value) return
     deleting.value = true
@@ -266,6 +279,7 @@ export function useCourseDetails() {
     toggleCourseStatus,
     toggleModuleStatus,
     toggleLessonStatus,
+    shareCourse,
     deleteCourse,
   }
 }

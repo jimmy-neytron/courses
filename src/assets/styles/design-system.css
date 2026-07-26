@@ -1043,3 +1043,28 @@ button:disabled {
 .course-card-delete:focus-visible {
   transform: none !important;
 }
+.product-course > .app-breadcrumbs { margin-bottom: 18px; }
+
+/* Auth form alignment */
+.auth-form > form { width: min(400px, 100%); display: flex; flex-direction: column; align-items: stretch; }
+.auth-form .auth-submit { width: 100%; min-height: 44px; margin-top: 10px; align-self: stretch; }
+.auth-form .auth-submit .cui-button__content,
+.auth-form .auth-submit .cui-button__label { width: 100%; justify-content: center; }
+.auth-form .auth-switch { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.auth-form .auth-switch-action {
+  appearance: none;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  line-height: inherit;
+  cursor: pointer;
+}
+.auth-form .auth-switch-action:hover { color: var(--accent-hover, #34e89a); text-decoration: underline; text-underline-offset: 3px; }
+.auth-form .auth-switch-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }

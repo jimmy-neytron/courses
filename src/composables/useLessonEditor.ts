@@ -1,21 +1,23 @@
-import { computed, nextTick, ref } from 'vue'
+﻿import { computed, nextTick, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDebounceFn } from '@vueuse/core'
 import { createLessonSectionConfig, resolveLessonBlockSection } from '@/composables/useCourseSections'
 import { useTransientFlag } from '@/composables/useTransientFlag'
 import { filterLessonBlockCatalog } from '@/data/lesson-block-catalog'
 import { useCourseStore } from '@/stores/courses'
+import { useNotificationStore } from '@/stores/notifications'
 import type { BlockType, LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
 
 export function useLessonEditor() {
   const route = useRoute()
   const store = useCourseStore()
+  const notifications = useNotificationStore()
   const found = computed(() => store.findLesson(String(route.params.lessonId)))
   const blocks = computed<LessonBlock[]>({ get: () => found.value?.lesson.blocks ?? [], set: (value) => { if (found.value) found.value.lesson.blocks = value } })
   const selectedId = ref('')
+  const activeSectionId = ref<LessonSectionId>('')
   const selected = computed(() => blocks.value.find((item) => item.id === selectedId.value) ?? blocks.value[0])
   const selectedIndex = computed(() => selected.value ? blocks.value.findIndex((item) => item.id === selected.value?.id) : -1)
-  const paletteQuery = ref('')
   const addQuery = ref('')
   const insertAfterIndex = ref(-1)
   const insertSectionId = ref<LessonSectionId | ''>('')
@@ -25,19 +27,30 @@ export function useLessonEditor() {
   const uploading = ref(false)
   const sectionSaving = ref(false)
   const sectionsDialogOpen = ref(false)
+  const blockOrderDialogOpen = ref(false)
   const blockPickerOpen = ref(false)
   const editorError = ref('')
   const { value: saved, show: showSaved } = useTransientFlag(1200)
 
   const courseKind = computed(() => found.value?.course.kind ?? 'general')
-  const filteredPalette = computed(() => filterLessonBlockCatalog(paletteQuery.value, courseKind.value))
   const pickerPalette = computed(() => filterLessonBlockCatalog(addQuery.value, courseKind.value))
   const availableSections = computed(() => createLessonSectionConfig(found.value?.lesson.sectionConfig, courseKind.value))
   const selectedSectionId = computed(() => selected.value ? resolveLessonBlockSection(selected.value, availableSections.value, courseKind.value) : availableSections.value[0]?.id ?? 'content')
+  const activeOrderSection = computed(() => (
+    availableSections.value.find((section) => section.id === activeSectionId.value)
+    ?? availableSections.value.find((section) => section.id === selectedSectionId.value)
+    ?? availableSections.value[0]
+  ))
+  const orderBlocks = computed(() => activeOrderSection.value
+    ? blocks.value.filter((block) => resolveLessonBlockSection(block, availableSections.value, courseKind.value) === activeOrderSection.value!.id)
+    : [])
   const correctAnswerOptions = computed(() => (selected.value?.options ?? []).map((option, index) => ({ label: `${String.fromCharCode(65 + index)}. ${option}`, value: index })))
   const isBusy = computed(() => saving.value || orderSaving.value || uploading.value)
 
-  function setError(error: unknown, fallback: string) { editorError.value = error instanceof Error ? error.message : fallback }
+  function setError(error: unknown, fallback: string) {
+    editorError.value = error instanceof Error ? error.message : fallback
+    notifications.error(editorError.value)
+  }
 
   function openBlockPicker(afterIndex = selectedIndex.value, sectionId?: LessonSectionId) {
     insertAfterIndex.value = Math.max(-1, afterIndex)
@@ -90,12 +103,26 @@ export function useLessonEditor() {
     orderSaving.value = true
     try { await store.persistBlockOrder(found.value.lesson.id); showSaved() } catch (error) { setError(error, 'Не удалось сохранить порядок') } finally { orderSaving.value = false }
   }
+  async function saveBlockOrder(orderedBlocks: LessonBlock[]) {
+    if (!found.value || !activeOrderSection.value) return
+    const queue = [...orderedBlocks]
+    const sectionId = activeOrderSection.value.id
+    blocks.value = blocks.value.map((block) => (
+      resolveLessonBlockSection(block, availableSections.value, courseKind.value) === sectionId
+        ? queue.shift() ?? block
+        : block
+    ))
+    selectedId.value = orderedBlocks[0]?.id ?? selected.value?.id ?? blocks.value[0]?.id ?? ''
+    await persistOrder()
+    blockOrderDialogOpen.value = false
+    notifications.success('Порядок блоков сохранён')
+  }
   async function removeBlock(block: LessonBlock) {
     if (!found.value) return
     const index = blocks.value.findIndex((item) => item.id === block.id)
     selectedId.value = block.id
     editorError.value = ''
-    try { await store.removeBlock(found.value.lesson.id, block.id); selectedId.value = blocks.value[Math.min(index, blocks.value.length - 1)]?.id ?? '' } catch (error) { setError(error, 'Не удалось удалить блок и связанный файл') }
+    try { await store.removeBlock(found.value.lesson.id, block.id); selectedId.value = blocks.value[Math.min(index, blocks.value.length - 1)]?.id ?? ''; notifications.success('Блок удалён') } catch (error) { setError(error, 'Не удалось удалить блок и связанный файл') }
   }
   async function removeSelectedBlock() { if (selected.value) await removeBlock(selected.value) }
   async function assignBlockSection(block: LessonBlock, sectionId: LessonSectionId) {
@@ -117,17 +144,17 @@ export function useLessonEditor() {
     if (!found.value) return
     const previous = found.value.lesson.status
     found.value.lesson.status = previous === 'Опубликован' ? 'Черновик' : 'Опубликован'
-    try { await store.saveLesson(found.value.lesson.id); showSaved() } catch (error) { found.value.lesson.status = previous; setError(error, 'Не удалось изменить статус урока') }
+    try { await store.saveLesson(found.value.lesson.id); showSaved(); notifications.success(found.value.lesson.status === 'Опубликован' ? 'Урок опубликован' : 'Урок возвращён в черновик') } catch (error) { found.value.lesson.status = previous; setError(error, 'Не удалось изменить статус урока') }
   }
   async function uploadAudio(file: File) {
     if (!found.value || !selected.value) return
     uploading.value = true
-    try { await store.uploadAudio(found.value.lesson.id, selected.value.id, file); showSaved() } catch (error) { setError(error, 'Не удалось загрузить аудио') } finally { uploading.value = false }
+    try { await store.uploadAudio(found.value.lesson.id, selected.value.id, file); showSaved(); notifications.success('Аудио загружено') } catch (error) { setError(error, 'Не удалось загрузить аудио') } finally { uploading.value = false }
   }
   async function uploadPdf(file: File) {
     if (!found.value || !selected.value) return
     uploading.value = true
-    try { await store.uploadPdf(found.value.lesson.id, selected.value.id, file); showSaved() } catch (error) { setError(error, 'Не удалось загрузить PDF') } finally { uploading.value = false }
+    try { await store.uploadPdf(found.value.lesson.id, selected.value.id, file); showSaved(); notifications.success('PDF загружен') } catch (error) { setError(error, 'Не удалось загрузить PDF') } finally { uploading.value = false }
   }
   function openSections() { sectionDraft.value = createLessonSectionConfig(found.value?.lesson.sectionConfig, courseKind.value); sectionsDialogOpen.value = true }
   async function saveSections() {
@@ -144,8 +171,9 @@ export function useLessonEditor() {
       await store.saveLessonSections(found.value.lesson.id, nextSections)
       sectionsDialogOpen.value = false
       showSaved()
+      notifications.success('Разделы урока сохранены')
     } catch (error) { setError(error, 'Не удалось сохранить разделы') } finally { sectionSaving.value = false }
   }
 
-  return { found, blocks, selectedId, selected, selectedIndex, paletteQuery, addQuery, insertAfterIndex, insertSectionId, sectionDraft, saving, orderSaving, uploading, sectionSaving, sectionsDialogOpen, blockPickerOpen, editorError, saved, isBusy, filteredPalette, pickerPalette, availableSections, selectedSectionId, correctAnswerOptions, openBlockPicker, addBlock, chooseBlock, scheduleSave, persistOrder, removeBlock, removeSelectedBlock, assignBlockSection, assignSelectedSection, updateOptions, toggleLessonStatus, uploadAudio, uploadPdf, openSections, saveSections }
+  return { found, blocks, activeSectionId, selectedId, selected, selectedIndex, addQuery, insertAfterIndex, insertSectionId, sectionDraft, saving, orderSaving, uploading, sectionSaving, sectionsDialogOpen, blockOrderDialogOpen, blockPickerOpen, editorError, saved, isBusy, pickerPalette, availableSections, selectedSectionId, activeOrderSection, orderBlocks, correctAnswerOptions, openBlockPicker, addBlock, chooseBlock, scheduleSave, persistOrder, saveBlockOrder, removeBlock, removeSelectedBlock, assignBlockSection, assignSelectedSection, updateOptions, toggleLessonStatus, uploadAudio, uploadPdf, openSections, saveSections }
 }

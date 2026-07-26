@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue'
+﻿import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { BlockType, Course, CourseCreateInput, CourseModule, Lesson, LessonBlock, LessonSectionConfig } from '@/types/course'
 import { createLessonSectionConfig } from '@/composables/useCourseSections'
@@ -25,6 +25,8 @@ import {
   draftCourseRecord,
   deleteLessonRecords,
   listCourses,
+  getCourseRecord,
+  getCourseIdForLessonRecord,
   publishCourseRecord,
   saveBlockOrder,
   saveCourseOrder,
@@ -105,6 +107,7 @@ export const useCourseStore = defineStore('courses', () => {
   let hydratedOrganizationId = ''
   let bootstrapPromise: Promise<void> | undefined
   let refreshPromise: Promise<void> | undefined
+  const fullyLoadedCourseIds = new Set<string>()
 
   if (!isSupabaseConfigured) {
     watch(courses, (value) => writeDemoCourses(value), { deep: true })
@@ -131,7 +134,7 @@ export const useCourseStore = defineStore('courses', () => {
     }
   }
 
-  function refreshCourses(organizationId: string, userId: string): Promise<void> {
+  function refreshCourses(organizationId: string, userId: string, preserveFullCourses = true): Promise<void> {
     if (refreshPromise) return refreshPromise
 
     refreshPromise = (async () => {
@@ -139,7 +142,15 @@ export const useCourseStore = defineStore('courses', () => {
       if (!courses.value.length) loading.value = true
 
       try {
-        courses.value = await listCourses(organizationId, userId)
+        const nextCourses = await listCourses(organizationId, userId)
+        if (useAuthStore().user?.id !== userId) return
+        courses.value = preserveFullCourses
+          ? nextCourses.map((course) => {
+              const loaded = fullyLoadedCourseIds.has(course.id) ? findCourse(course.id) : undefined
+              return loaded ? { ...course, learningPlan: loaded.learningPlan, modules: loaded.modules } : course
+            })
+          : nextCourses
+        if (!preserveFullCourses) fullyLoadedCourseIds.clear()
         hydratedOrganizationId = organizationId
         hydrated.value = true
         writeCourseCache(organizationId, courses.value)
@@ -165,7 +176,7 @@ export const useCourseStore = defineStore('courses', () => {
 
     bootstrapPromise = (async () => {
       const auth = useAuthStore()
-      if (!auth.organization) await auth.loadOrganization()
+      if (!auth.organization || auth.organization.id !== auth.user?.id) await auth.loadOrganization()
 
       if (!auth.organization || !auth.user) {
         courses.value = []
@@ -187,7 +198,7 @@ export const useCourseStore = defineStore('courses', () => {
         }
       }
 
-      await refreshCourses(auth.organization.id, auth.user.id)
+      await refreshCourses(auth.organization.id, auth.user.id, !force)
     })()
       .catch((error) => {
         loadError.value = errorMessage(error, 'Не удалось загрузить курсы')
@@ -200,6 +211,39 @@ export const useCourseStore = defineStore('courses', () => {
     return bootstrapPromise
   }
 
+  async function loadAccessibleCourse(courseId: string): Promise<void> {
+    if (!courseId || !isSupabaseConfigured) return
+    const existing = findCourse(courseId)
+    if (existing && fullyLoadedCourseIds.has(courseId)) return
+
+    const userId = useAuthStore().user?.id ?? ''
+    loadError.value = ''
+    try {
+      const course = await getCourseRecord(courseId, userId)
+      if (useAuthStore().user?.id !== userId) return
+      if (!course) return
+
+      const index = courses.value.findIndex((item) => item.id === course.id)
+      if (index >= 0) courses.value.splice(index, 1, course)
+      else courses.value.push(course)
+      fullyLoadedCourseIds.add(course.id)
+    } catch (error) {
+      loadError.value = errorMessage(error, 'Не удалось открыть курс')
+      throw error
+    }
+  }
+
+  async function loadAccessibleLesson(lessonId: string): Promise<void> {
+    if (!lessonId || findLesson(lessonId) || !isSupabaseConfigured) return
+    loadError.value = ''
+    try {
+      const courseId = await getCourseIdForLessonRecord(lessonId)
+      if (courseId) await loadAccessibleCourse(courseId)
+    } catch (error) {
+      loadError.value = errorMessage(error, 'Не удалось открыть урок')
+      throw error
+    }
+  }
   async function createCourse(input: CourseCreateInput): Promise<string> {
     if (!isSupabaseConfigured) {
       const id = `course-${Date.now()}`
@@ -532,6 +576,8 @@ export const useCourseStore = defineStore('courses', () => {
     findCourse,
     findLesson,
     hydrate,
+    loadAccessibleCourse,
+    loadAccessibleLesson,
     createCourse,
     addModule,
     addLesson,

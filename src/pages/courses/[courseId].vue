@@ -51,6 +51,7 @@ const {
   toggleCourseStatus,
   toggleModuleStatus,
   toggleLessonStatus,
+  shareCourse,
   deleteCourse,
 } = useCourseDetails()
 </script>
@@ -60,7 +61,7 @@ const {
     <template v-if="course">
       <div class="product-course">
         <AppBreadcrumbs :items="[{ label: 'Курсы', to: '/app/courses' }, { label: course.title }]" />
-        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @toggle-status="toggleCourseStatus" @delete="deleteDialogOpen = true" />
+        <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @toggle-status="toggleCourseStatus" @share="shareCourse" @delete="deleteDialogOpen = true" />
         <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
         <CourseTabs v-if="canManage" v-model="tab" />
         <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" :selection-mode="selectionMode" :selected-lesson-ids="selectedLessonIds" :deleting-lessons="deletingLessons" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" @toggle-module-status="toggleModuleStatus" @toggle-lesson-status="toggleLessonStatus" @toggle-selection-mode="toggleSelectionMode" @toggle-lesson="toggleLessonSelection" @toggle-module-lessons="toggleModuleLessons" @delete-selected="requestDeleteSelectedLessons" />

@@ -1,6 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from 'vue'
-import { GripVertical, MessageSquare, Plus } from 'lucide-vue-next'
+import { MessageSquare, Plus } from 'lucide-vue-next'
 import LessonAudioPlayer from '@/components/lesson/player/LessonAudioPlayer.vue'
 import LessonPdfViewer from '@/components/lesson/player/LessonPdfViewer.vue'
 import LessonBlockContextMenu from '@/components/lesson/editor/LessonBlockContextMenu.vue'
@@ -23,7 +23,6 @@ const sectionLabel = computed(() => props.sections.find((section) => section.id 
 <template>
   <LessonBlockContextMenu :block-label="lessonBlockLabels[item.type]" :block-number="index + 1" :sections="sections" :active-section-id="activeSectionId" @assign="emit('assign', $event)" @add-below="emit('addBelow')" @remove="emit('remove')">
     <article :data-block-id="item.id" :class="['product-editor-block', selected && 'is-selected']" @click="emit('select')" @contextmenu="emit('select')">
-      <button class="drag-handle block-drag-handle" aria-label="Переместить блок"><GripVertical /></button>
       <div class="editor-block-number">{{ String(index + 1).padStart(2, '0') }}</div>
       <div class="editor-block-content">
         <div class="editor-block-kicker"><span>{{ lessonBlockLabels[item.type] }}</span><small>{{ sectionLabel }}</small></div>

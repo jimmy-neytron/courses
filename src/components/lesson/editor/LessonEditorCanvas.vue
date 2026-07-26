@@ -1,6 +1,5 @@
-<script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { VueDraggable } from 'vue-draggable-plus'
+﻿<script setup lang="ts">
+import { computed, watch } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import UiInput from '@/components/ui/UiInput.vue'
 import LessonEditorBlockCard from '@/components/lesson/editor/LessonEditorBlockCard.vue'
@@ -14,7 +13,7 @@ const emit = defineEmits<{ reorder: []; addAt: [index?: number, sectionId?: Less
 const courseKind = computed(() => props.sections.some((section) => section.id === 'content') ? 'general' : 'language')
 const orderedSections = computed(() => [...props.sections].sort((left, right) => left.order - right.order))
 const selectedIndex = computed(() => blocks.value.findIndex((item) => item.id === selectedId.value))
-const activeSectionId = ref<LessonSectionId>('')
+const activeSectionId = defineModel<LessonSectionId>('activeSectionId', { default: '' })
 const selectedSectionId = computed(() => {
   const block = blocks.value.find((item) => item.id === selectedId.value)
   return block ? resolveLessonBlockSection(block, props.sections, courseKind.value) : ''
@@ -29,11 +28,6 @@ watch([orderedSections, selectedSectionId], ([sections, selectedSection]) => {
 function sectionBlocks(sectionId: LessonSectionId): LessonBlock[] { return blocks.value.filter((block) => resolveLessonBlockSection(block, props.sections, courseKind.value) === sectionId) }
 function globalIndex(block: LessonBlock): number { return blocks.value.findIndex((item) => item.id === block.id) }
 function lastSectionIndex(sectionId: LessonSectionId): number { return blocks.value.reduce((last, block, index) => resolveLessonBlockSection(block, props.sections, courseKind.value) === sectionId ? index : last, -1) }
-function reorderSection(sectionId: LessonSectionId, reordered: LessonBlock[]): void {
-  const queue = [...reordered]
-  blocks.value = blocks.value.map((block) => resolveLessonBlockSection(block, props.sections, courseKind.value) === sectionId ? queue.shift()! : block)
-  emit('reorder')
-}
 </script>
 
 <template>
@@ -53,9 +47,9 @@ function reorderSection(sectionId: LessonSectionId, reordered: LessonBlock[]): v
     <div v-if="activeSection" class="editor-section-list">
       <section :key="activeSection.id" class="editor-section-group">
         <div class="editor-section-head"><div><span>{{ String(activeSection.order + 1).padStart(2, '0') }}</span><h2>{{ activeSection.label }}</h2></div><div><small v-if="!activeSection.visible">Скрыт в уроке</small><span>{{ sectionBlocks(activeSection.id).length }} блоков</span></div></div>
-        <VueDraggable :model-value="sectionBlocks(activeSection.id)" item-key="id" handle=".block-drag-handle" :animation="180" ghost-class="drag-ghost" :force-fallback="true" chosen-class="drag-chosen" class="editor-block-list" @update:model-value="reorderSection(activeSection.id, $event)">
+        <div class="editor-block-list">
           <LessonEditorBlockCard v-for="item in sectionBlocks(activeSection.id)" :key="item.id" :item="item" :index="globalIndex(item)" :selected="selectedId === item.id" :sections="sections" :course-kind="courseKind" @select="selectedId = item.id" @assign="emit('assign', item, $event)" @add-below="emit('addAt', globalIndex(item), activeSection.id)" @remove="emit('remove', item)" />
-        </VueDraggable>
+        </div>
         <div v-if="!sectionBlocks(activeSection.id).length" class="editor-section-empty">В этом разделе пока нет блоков</div>
         <button class="editor-section-add" @click="emit('addAt', lastSectionIndex(activeSection.id), activeSection.id)"><Plus />Добавить блок в раздел</button>
       </section>

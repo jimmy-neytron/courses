@@ -2,10 +2,9 @@
 import { GraduationCap } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
-import UiAlert from '@/components/ui/UiAlert.vue'
 import { useAuthForm } from '@/composables/useAuthForm'
 
-const { isLogin, name, email, password, busy, error, notice, submit, switchMode } = useAuthForm()
+const { isLogin, name, email, password, busy, submit, switchMode } = useAuthForm()
 </script>
 
 <template>
@@ -34,12 +33,12 @@ const { isLogin, name, email, password, busy, error, notice, submit, switchMode 
       />
     </label>
 
-    <UiAlert v-if="error" severity="error">{{ error }}</UiAlert>
-    <UiAlert v-if="notice" severity="success">{{ notice }}</UiAlert>
-    <UiButton type="submit" :loading="busy" fluid>{{ isLogin ? 'Войти' : 'Зарегистрироваться' }}</UiButton>
+    <UiButton class="auth-submit" type="submit" :loading="busy" fluid>{{ isLogin ? 'Войти' : 'Зарегистрироваться' }}</UiButton>
     <p class="auth-switch">
-      {{ isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
-      <UiButton type="button" link @click="switchMode">{{ isLogin ? 'Создать' : 'Войти' }}</UiButton>
+      <span>{{ isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}</span>
+      <button class="auth-switch-action" type="button" @click="switchMode">
+        {{ isLogin ? 'Создать аккаунт' : 'Войти' }}
+      </button>
     </p>
   </form>
 </template>

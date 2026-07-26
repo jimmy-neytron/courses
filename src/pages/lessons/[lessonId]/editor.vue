@@ -1,9 +1,9 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from 'vue'
 import { LayoutTemplate, ShieldAlert } from 'lucide-vue-next'
 import FullscreenLayout from '@/layouts/fullscreen.vue'
 import LessonBlockInspector from '@/components/lesson/editor/LessonBlockInspector.vue'
-import LessonBlockPalette from '@/components/lesson/editor/LessonBlockPalette.vue'
+import LessonBlockOrderDialog from '@/components/lesson/editor/LessonBlockOrderDialog.vue'
 import LessonBlockPickerDialog from '@/components/lesson/editor/LessonBlockPickerDialog.vue'
 import LessonEditorCanvas from '@/components/lesson/editor/LessonEditorCanvas.vue'
 import LessonEditorTopbar from '@/components/lesson/editor/LessonEditorTopbar.vue'
@@ -15,29 +15,32 @@ const previewOpen = ref(false)
 const {
   found,
   blocks,
+  activeSectionId,
   selectedId,
   selected,
-  paletteQuery,
   addQuery,
   insertAfterIndex,
   sectionDraft,
+  orderSaving,
   uploading,
   sectionSaving,
   sectionsDialogOpen,
+  blockOrderDialogOpen,
   blockPickerOpen,
   editorError,
   saved,
   isBusy,
-  filteredPalette,
   pickerPalette,
   availableSections,
   selectedSectionId,
+  activeOrderSection,
+  orderBlocks,
   correctAnswerOptions,
   openBlockPicker,
-  addBlock,
   chooseBlock,
   scheduleSave,
   persistOrder,
+  saveBlockOrder,
   removeBlock,
   removeSelectedBlock,
   assignBlockSection,
@@ -62,13 +65,14 @@ const {
         :busy="isBusy"
         :saved="saved"
         @sections="openSections"
+        @order="blockOrderDialogOpen = true"
         @preview="previewOpen = true"
         @toggle-status="toggleLessonStatus"
       />
-      <LessonBlockPalette v-model:query="paletteQuery" :items="filteredPalette" @add="addBlock" />
       <LessonEditorCanvas
         v-model:blocks="blocks"
         v-model:selected-id="selectedId"
+        v-model:active-section-id="activeSectionId"
         :lesson="found.lesson"
         :sections="availableSections"
         :error="editorError"
@@ -93,6 +97,15 @@ const {
       />
 
       <LessonPreviewDrawer v-model:visible="previewOpen" :lesson="found.lesson" />
+      <LessonBlockOrderDialog
+        v-if="blockOrderDialogOpen && activeOrderSection"
+        :blocks="orderBlocks"
+        :section="activeOrderSection"
+        :saving="orderSaving"
+        @close="blockOrderDialogOpen = false"
+        @select="selectedId = $event"
+        @save="saveBlockOrder"
+      />
       <LessonSectionsDialog
         v-if="sectionsDialogOpen"
         v-model="sectionDraft"

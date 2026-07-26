@@ -158,7 +158,7 @@ export function mapDatabaseCourse(row: DatabaseRow, currentUserId = ''): Course 
   return {
     id: String(row.id),
     ownerId,
-    accessRole: !currentUserId || ownerId === currentUserId ? 'creator' : 'learner',
+    accessRole: currentUserId && ownerId === currentUserId ? 'creator' : 'learner',
     creator: {
       id: ownerId,
       name: String(owner.display_name ?? (ownerId === currentUserId ? 'Вы' : 'Автор курса')),

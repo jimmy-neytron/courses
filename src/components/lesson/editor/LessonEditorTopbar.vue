@@ -1,6 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from 'vue'
-import { ArchiveRestore, Eye, Sparkles, SlidersHorizontal } from 'lucide-vue-next'
+import { ArchiveRestore, Eye, ListOrdered, Sparkles, SlidersHorizontal } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import SaveState from '@/components/common/SaveState.vue'
 import AppBreadcrumbs from '@/components/app/AppBreadcrumbs.vue'
@@ -15,7 +15,7 @@ const props = defineProps<{
   saved?: boolean
 }>()
 
-defineEmits<{ sections: []; preview: []; toggleStatus: [] }>()
+defineEmits<{ sections: []; order: []; preview: []; toggleStatus: [] }>()
 
 const breadcrumbs = computed(() => [
   { label: 'Курсы', to: '/app/courses' },
@@ -29,6 +29,7 @@ const breadcrumbs = computed(() => [
     <AppBreadcrumbs :items="breadcrumbs" />
     <div class="editor-save-state"><SaveState :saving="busy" :saved="saved" /></div>
     <UiButton severity="secondary" outlined @click="$emit('sections')"><SlidersHorizontal />Разделы</UiButton>
+    <UiButton severity="secondary" outlined @click="$emit('order')"><ListOrdered />Порядок</UiButton>
     <UiButton severity="secondary" outlined @click="$emit('preview')"><Eye />Предпросмотр</UiButton>
     <UiButton :severity="status === 'Опубликован' ? 'secondary' : undefined" :outlined="status === 'Опубликован'" @click="$emit('toggleStatus')">
       <ArchiveRestore v-if="status === 'Опубликован'" />

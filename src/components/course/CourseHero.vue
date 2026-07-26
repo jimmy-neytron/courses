@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ArchiveRestore, BookOpen, Clock3, Eye, FileText, Play, Sparkles, Trash2 } from 'lucide-vue-next'
+import { ArchiveRestore, BookOpen, Clock3, Eye, FileText, Link2, Play, Sparkles, Trash2 } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import CourseRoleBadge from '@/components/course/CourseRoleBadge.vue'
 import type { Course } from '@/types/course'
 
 defineProps<{ course: Course; moduleCount: number; lessonCount: number; totalMinutes: number }>()
-defineEmits<{ toggleStatus: []; delete: [] }>()
+defineEmits<{ toggleStatus: []; share: []; delete: [] }>()
 </script>
 
 <template>
@@ -18,6 +18,7 @@ defineEmits<{ toggleStatus: []; delete: [] }>()
     </div>
     <div v-if="course.accessRole === 'creator'" class="product-course-actions">
       <RouterLink :to="`/preview/courses/${course.id}`" class="product-button product-button--secondary"><Eye />Предпросмотр</RouterLink>
+      <UiButton severity="secondary" outlined @click="$emit('share')"><Link2 />Поделиться</UiButton>
       <UiButton :severity="course.status === 'Опубликован' ? 'secondary' : undefined" :outlined="course.status === 'Опубликован'" @click="$emit('toggleStatus')"><ArchiveRestore v-if="course.status === 'Опубликован'" /><Sparkles v-else />{{ course.status === 'Опубликован' ? 'Вернуть в черновик' : 'Опубликовать' }}</UiButton>
       <UiButton severity="danger" outlined @click="$emit('delete')"><Trash2 />Удалить курс</UiButton>
     </div>

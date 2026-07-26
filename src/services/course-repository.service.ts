@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   BlockType,
   Course,
   CourseCreateInput,
@@ -59,6 +59,23 @@ const courseSelect = `
       )
     )
   )
+`
+const courseListSelect = `
+  id,
+  owner_id,
+  title,
+  description,
+  status,
+  visibility,
+  language_code,
+  source_level,
+  target_level,
+  duration_weeks,
+  lessons_per_week,
+  default_lesson_duration,
+  accent_color,
+  updated_at,
+  owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url)
 `
 
 const publishSelect = `
@@ -142,14 +159,13 @@ async function resolveAssetUrls(courses: Course[]): Promise<void> {
 }
 
 /**
- * organizationId remains in the signature because the old store passes it.
- * The current schema has no organizations, so courses are scoped by owner_id.
+ * RLS returns the current user's drafts plus every published public course.
+ * The user id is used only to map each result to creator/learner access.
  */
 export async function listCourses(_organizationId: string, userId: string): Promise<Course[]> {
   const { data, error } = await requireSupabase()
     .from('courses')
-    .select(courseSelect)
-    .eq('owner_id', userId)
+    .select(courseListSelect)
     .order('updated_at', { ascending: false })
 
   if (error) throw error
@@ -162,6 +178,31 @@ export async function listCourses(_organizationId: string, userId: string): Prom
   return courses
 }
 
+export async function getCourseRecord(courseId: string, userId: string): Promise<Course | undefined> {
+  const { data, error } = await requireSupabase()
+    .from('courses')
+    .select(courseSelect)
+    .eq('id', courseId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return undefined
+
+  const course = mapDatabaseCourse(data as unknown as DatabaseRow, userId)
+  await resolveAssetUrls([course])
+  return course
+}
+
+export async function getCourseIdForLessonRecord(lessonId: string): Promise<string | undefined> {
+  const { data, error } = await requireSupabase()
+    .from('lessons')
+    .select('course_id')
+    .eq('id', lessonId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data?.course_id ? String(data.course_id) : undefined
+}
 export async function createCourseRecord(
   _organizationId: string,
   ownerId: string,
@@ -504,6 +545,7 @@ export async function publishCourseRecord(courseId: string): Promise<void> {
     .from('courses')
     .update({
       status: 'published',
+      visibility: 'public',
       current_release_id: String(release.id),
       published_at: publishedAt,
     })
@@ -525,7 +567,7 @@ export async function draftCourseRecord(courseId: string): Promise<void> {
   throwIfError(lessonsResult.error)
   const modulesResult = await database.from('course_modules').update({ is_published: false }).eq('course_id', courseId)
   throwIfError(modulesResult.error)
-  const courseResult = await database.from('courses').update({ status: 'draft', current_release_id: null, published_at: null }).eq('id', courseId)
+  const courseResult = await database.from('courses').update({ status: 'draft', visibility: 'private', current_release_id: null, published_at: null }).eq('id', courseId)
   throwIfError(courseResult.error)
 }
 export async function saveCourseOrder(course: Course): Promise<void> {

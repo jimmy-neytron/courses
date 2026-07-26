@@ -187,3 +187,14 @@
   }
 
 }
+
+/* Course detail spacing: keep the overview calm before entering lessons. */
+.product-course { display: grid; gap: 18px; padding-bottom: 64px; }
+.product-course > .app-breadcrumbs { margin-bottom: 4px; }
+.product-course-hero { grid-template-columns: 132px minmax(0, 1fr) minmax(220px, auto); gap: 28px; align-items: center; padding: 34px; }
+.product-course-actions { align-self: center; justify-self: end; max-width: 340px; gap: 10px; padding-left: 18px; }
+.product-course-actions .product-button,
+.product-course-actions .ui-button { min-height: 42px; }
+.product-overview { margin-top: 0; }
+@media (max-width: 980px) { .product-course-hero { grid-template-columns: 112px minmax(0, 1fr); } .product-course-actions { grid-column: 1 / -1; justify-self: start; padding-left: 0; } }
+@media (max-width: 760px) { .product-course { gap: 14px; } .product-course-hero { padding: 22px; } .product-course-actions, .product-course-actions > * { width: 100%; } }

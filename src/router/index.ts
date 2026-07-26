@@ -21,12 +21,12 @@ export const router = createRouter({
     {
       path: '/preview/courses/:courseId',
       component: () => import('@/pages/preview/courses/[courseId].vue'),
-      meta: { loadingLabel: 'Открываем курс', auth: true },
+      meta: { loadingLabel: 'Открываем курс' },
     },
     {
       path: '/preview/lessons/:lessonId',
       component: () => import('@/pages/preview/lessons/[lessonId].vue'),
-      meta: { loadingLabel: 'Открываем урок', auth: true },
+      meta: { loadingLabel: 'Открываем урок' },
     },
     {
       path: '/app/settings',

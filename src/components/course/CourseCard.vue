@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowUpRight, BookOpen, Clock3, Play, Trash2 } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -11,9 +11,7 @@ const emit = defineEmits<{ delete: [course: Course] }>()
 const recent = useRecentCourses()
 const lessons = computed(() => props.course.modules.reduce((sum, module) => sum + module.lessons.length, 0))
 const minutes = computed(() => props.course.modules.reduce((sum, module) => sum + module.lessons.reduce((value, lesson) => value + lesson.duration, 0), 0))
-const href = computed(() => props.course.accessRole === 'creator'
-  ? `/app/courses/${props.course.id}`
-  : `/preview/courses/${props.course.id}`)
+const href = computed(() => `/app/courses/${props.course.id}`)
 const canDelete = computed(() => props.deletable && props.course.accessRole === 'creator')
 const resume = computed(() => recent.forCourse(props.course.id))
 const resumeLabel = computed(() => props.course.accessRole === 'creator' ? 'Продолжить работу' : 'Продолжить обучение')

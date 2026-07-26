@@ -9,7 +9,7 @@ import { useRoute } from 'vue-router'
 import {
   createLessonSectionConfig,
   resolveLessonBlockSection,
-} from '@/composables/useCourseSections'
+} from '@/domain/lesson-sections'
 import { useTransientFlag } from '@/composables/useTransientFlag'
 import { filterLessonBlockCatalog } from '@/data/lesson-block-catalog'
 import {

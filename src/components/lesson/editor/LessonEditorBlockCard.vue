@@ -7,7 +7,7 @@ import LessonBlockContextMenu from '@/components/lesson/editor/LessonBlockContex
 import RichTextContent from '@/components/common/RichTextContent.vue'
 import { richTextToPlainText } from '@/components/common/richText'
 import { getLessonBlockCatalogItem, lessonBlockLabels } from '@/data/lesson-block-catalog'
-import { resolveLessonBlockSection } from '@/composables/useCourseSections'
+import { resolveLessonBlockSection } from '@/domain/lesson-sections'
 import type { CourseKind, LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
 
 const props = defineProps<{

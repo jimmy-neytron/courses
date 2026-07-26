@@ -1,7 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { BlockType, Course, CourseCreateInput, CourseModule, Lesson, LessonBlock, LessonSectionConfig } from '@/types/course'
-import { createLessonSectionConfig } from '@/composables/useCourseSections'
+import { createLessonSectionConfig } from '@/domain/lesson-sections'
 import {
   createLessonBlockUpdatePayload,
   createLessonUpdatePayload,
@@ -26,6 +26,9 @@ import {
   createCourseRecord,
   createLessonRecord,
   createModuleRecord,
+  duplicateLessonRecord,
+  duplicateModuleRecord,
+  acknowledgeStorageCleanup,
   deleteBlockRecord,
   deleteCourseRecord,
   draftCourseRecord,
@@ -83,23 +86,37 @@ function duplicateLocalLesson(source: Lesson, title = source.title): Lesson {
   }
 }
 
-async function duplicateLessonRecords(
-  courseId: string,
-  moduleId: string,
-  source: Lesson,
-  position: number,
-  title = source.title,
-): Promise<string> {
-  const lessonId = await createLessonRecord(courseId, moduleId, title, position, source.duration)
-  for (const [index, sourceBlock] of source.blocks.entries()) {
-    const block = duplicateBlockSource(sourceBlock)
-    await createBlockRecord(courseId, lessonId, block.type, index, block)
-  }
-  if (source.sectionConfig?.length) {
-    await saveSectionConfigRecord({ courseId, lessonId, sections: structuredClone(source.sectionConfig) })
-  }
-  return lessonId
+
+function lessonAssetPaths(lessons: Lesson[]): string[] {
+  return lessons
+    .flatMap((lesson) => lesson.blocks)
+    .flatMap((block) => [
+      block.audioPath,
+      block.filePath,
+    ])
+    .filter((path): path is string => Boolean(path))
 }
+
+async function cleanupDeletedAssets(
+  paths: string[],
+): Promise<void> {
+  const uniquePaths = [...new Set(paths.filter(Boolean))]
+
+  if (!uniquePaths.length) return
+
+  try {
+    await deleteLessonAssets(uniquePaths)
+    await acknowledgeStorageCleanup(uniquePaths)
+  } catch (error) {
+    // The database command already succeeded. The SQL outbox keeps these
+    // paths pending for a later retry instead of restoring deleted rows.
+    console.warn(
+      'Не удалось очистить часть файлов Storage',
+      error,
+    )
+  }
+}
+
 
 export const useCourseStore = defineStore('courses', () => {
   const cachedDemoCourses = readDemoCourses()
@@ -335,94 +352,182 @@ export const useCourseStore = defineStore('courses', () => {
     await loadAccessibleCourse(courseId, true)
     return id
   }
-  async function duplicateLesson(courseId: string, moduleId: string, lessonId: string): Promise<string | undefined> {
+    async function duplicateLesson(
+    courseId: string,
+    moduleId: string,
+    lessonId: string,
+  ): Promise<string | undefined> {
     const course = findCourse(courseId)
-    const module = course?.modules.find((item) => item.id === moduleId)
-    const lessonIndex = module?.lessons.findIndex((item) => item.id === lessonId) ?? -1
-    const sourceLesson = lessonIndex >= 0 ? module?.lessons[lessonIndex] : undefined
-    if (!course || !module || !sourceLesson || course.accessRole !== 'creator') return
+    const module = course?.modules.find(
+      (item) => item.id === moduleId,
+    )
+    const lessonIndex = module?.lessons.findIndex(
+      (item) => item.id === lessonId,
+    ) ?? -1
+    const sourceLesson = lessonIndex >= 0
+      ? module?.lessons[lessonIndex]
+      : undefined
+
+    if (
+      !course
+      || !module
+      || !sourceLesson
+      || course.accessRole !== 'creator'
+    ) {
+      return
+    }
 
     const title = duplicateTitle(sourceLesson.title)
-    const optimisticCopy = duplicateLocalLesson(sourceLesson, title)
-    module.lessons.splice(lessonIndex + 1, 0, optimisticCopy)
+    const optimisticCopy = duplicateLocalLesson(
+      sourceLesson,
+      title,
+    )
+
+    module.lessons.splice(
+      lessonIndex + 1,
+      0,
+      optimisticCopy,
+    )
+
     if (!isSupabaseConfigured) return optimisticCopy.id
 
-    const remotePosition = module.lessons.length - 1
     try {
-      const id = await duplicateLessonRecords(courseId, moduleId, sourceLesson, remotePosition, title)
+      const id = await duplicateLessonRecord(
+        lessonId,
+        moduleId,
+        lessonIndex + 1,
+        title,
+      )
+
       optimisticCopy.id = id
+
       await loadAccessibleCourse(courseId, true)
-      const refreshedCourse = findCourse(courseId)
-      const refreshedModule = refreshedCourse?.modules.find((item) => item.id === moduleId)
-      const copyIndex = refreshedModule?.lessons.findIndex((item) => item.id === id) ?? -1
-      if (refreshedCourse && refreshedModule && copyIndex >= 0) {
-        const [copy] = refreshedModule.lessons.splice(copyIndex, 1)
-        if (copy) refreshedModule.lessons.splice(lessonIndex + 1, 0, copy)
-        await saveCourseOrder(refreshedCourse)
-      }
+
       return id
     } catch (error) {
-      const currentModule = findCourse(courseId)?.modules.find((item) => item.id === moduleId)
-      if (currentModule) currentModule.lessons = currentModule.lessons.filter((item) => item !== optimisticCopy)
+      const currentModule = findCourse(courseId)
+        ?.modules.find((item) => item.id === moduleId)
+
+      if (currentModule) {
+        currentModule.lessons = currentModule.lessons.filter(
+          (item) => item !== optimisticCopy,
+        )
+      }
+
       throw error
     }
   }
 
-  async function duplicateModule(courseId: string, moduleId: string): Promise<string | undefined> {
+    async function duplicateModule(
+    courseId: string,
+    moduleId: string,
+  ): Promise<string | undefined> {
     const course = findCourse(courseId)
-    const moduleIndex = course?.modules.findIndex((item) => item.id === moduleId) ?? -1
-    const sourceModule = moduleIndex >= 0 ? course?.modules[moduleIndex] : undefined
-    if (!course || !sourceModule || course.accessRole !== 'creator') return
+    const moduleIndex = course?.modules.findIndex(
+      (item) => item.id === moduleId,
+    ) ?? -1
+    const sourceModule = moduleIndex >= 0
+      ? course?.modules[moduleIndex]
+      : undefined
+
+    if (
+      !course
+      || !sourceModule
+      || course.accessRole !== 'creator'
+    ) {
+      return
+    }
 
     const optimisticCopy: CourseModule = {
       id: localId('module'),
       title: duplicateTitle(sourceModule.title),
       open: true,
       status: 'Черновик',
-      lessons: sourceModule.lessons.map((lesson) => duplicateLocalLesson(lesson)),
+      lessons: sourceModule.lessons.map(
+        (lesson) => duplicateLocalLesson(lesson),
+      ),
     }
-    course.modules.splice(moduleIndex + 1, 0, optimisticCopy)
+
+    course.modules.splice(
+      moduleIndex + 1,
+      0,
+      optimisticCopy,
+    )
+
     if (!isSupabaseConfigured) return optimisticCopy.id
 
     try {
-      const copiedModuleId = await createModuleRecord(courseId, optimisticCopy.title, course.modules.length - 1)
-      optimisticCopy.id = copiedModuleId
-      for (const [index, lesson] of sourceModule.lessons.entries()) {
-        await duplicateLessonRecords(courseId, copiedModuleId, lesson, index)
-      }
+      const moduleCopyId = await duplicateModuleRecord(
+        moduleId,
+        moduleIndex + 1,
+        optimisticCopy.title,
+      )
+
+      optimisticCopy.id = moduleCopyId
+
       await loadAccessibleCourse(courseId, true)
-      const refreshedCourse = findCourse(courseId)
-      const copyIndex = refreshedCourse?.modules.findIndex((item) => item.id === copiedModuleId) ?? -1
-      if (refreshedCourse && copyIndex >= 0) {
-        const [copy] = refreshedCourse.modules.splice(copyIndex, 1)
-        if (copy) refreshedCourse.modules.splice(moduleIndex + 1, 0, copy)
-        await saveCourseOrder(refreshedCourse)
-      }
-      return copiedModuleId
+
+      return moduleCopyId
     } catch (error) {
       const currentCourse = findCourse(courseId)
-      if (currentCourse) currentCourse.modules = currentCourse.modules.filter((item) => item !== optimisticCopy)
+
+      if (currentCourse) {
+        currentCourse.modules = currentCourse.modules.filter(
+          (item) => item !== optimisticCopy,
+        )
+      }
+
       throw error
     }
   }
 
-  async function removeLessons(courseId: string, lessonIds: string[]): Promise<void> {
+    async function removeLessons(
+    courseId: string,
+    lessonIds: string[],
+  ): Promise<void> {
     const course = findCourse(courseId)
-    if (!course || course.accessRole !== 'creator' || !lessonIds.length) return
+
+    if (
+      !course
+      || course.accessRole !== 'creator'
+      || !lessonIds.length
+    ) {
+      return
+    }
 
     const selected = new Set(lessonIds)
-    const lessons = course.modules.flatMap((module) => module.lessons.filter((lesson) => selected.has(lesson.id)))
+    const lessons = course.modules.flatMap(
+      (module) => module.lessons.filter(
+        (lesson) => selected.has(lesson.id),
+      ),
+    )
+
     if (!lessons.length) return
 
     if (isSupabaseConfigured) {
-      await deleteLessonAssets(lessons.flatMap((lesson) => lesson.blocks.flatMap((block) => [block.audioPath, block.filePath])))
-      await deleteLessonRecords(lessons.map((lesson) => lesson.id))
+      const paths = lessonAssetPaths(lessons)
+
+      await deleteLessonRecords(
+        courseId,
+        lessons.map((lesson) => lesson.id),
+      )
+
+      await cleanupDeletedAssets(paths)
     } else {
-      releaseLessonObjectUrls(lessons.flatMap((lesson) => lesson.blocks.flatMap((block) => [block.audioUrl, block.fileUrl])))
+      releaseLessonObjectUrls(
+        lessons
+          .flatMap((lesson) => lesson.blocks)
+          .flatMap((block) => [
+            block.audioUrl,
+            block.fileUrl,
+          ]),
+      )
     }
 
     for (const module of course.modules) {
-      module.lessons = module.lessons.filter((lesson) => !selected.has(lesson.id))
+      module.lessons = module.lessons.filter(
+        (lesson) => !selected.has(lesson.id),
+      )
     }
   }
 
@@ -534,19 +639,35 @@ export const useCourseStore = defineStore('courses', () => {
     await saveBlock(lessonId, blockId)
   }
 
-  async function removeBlock(lessonId: string, blockId: string): Promise<void> {
+    async function removeBlock(
+    lessonId: string,
+    blockId: string,
+  ): Promise<void> {
     const found = findLesson(lessonId)
-    const block = found?.lesson.blocks.find((item) => item.id === blockId)
+    const block = found?.lesson.blocks.find(
+      (item) => item.id === blockId,
+    )
+
     if (!found || !block) return
 
     if (isSupabaseConfigured) {
-      await deleteLessonAssets([block.audioPath, block.filePath])
+      const paths = [
+        block.audioPath,
+        block.filePath,
+      ].filter((path): path is string => Boolean(path))
+
       await deleteBlockRecord(blockId)
+      await cleanupDeletedAssets(paths)
     } else {
-      releaseLessonObjectUrls([block.audioUrl, block.fileUrl])
+      releaseLessonObjectUrls([
+        block.audioUrl,
+        block.fileUrl,
+      ])
     }
 
-    found.lesson.blocks = found.lesson.blocks.filter((item) => item.id !== blockId)
+    found.lesson.blocks = found.lesson.blocks.filter(
+      (item) => item.id !== blockId,
+    )
   }
   async function saveCourse(courseId: string): Promise<void> {
     const course = findCourse(courseId)
@@ -554,12 +675,42 @@ export const useCourseStore = defineStore('courses', () => {
     await updateCourseRecord(course)
     course.updated = 'Только что'
   }
-  async function deleteCourse(courseId: string): Promise<void> {
-    const index = courses.value.findIndex((course) => course.id === courseId)
+    async function deleteCourse(
+    courseId: string,
+  ): Promise<void> {
+    const index = courses.value.findIndex(
+      (course) => course.id === courseId,
+    )
+
     if (index < 0) return
 
-    if (isSupabaseConfigured) await deleteCourseRecord(courseId)
+    const course = courses.value[index]
+
+    if (!course) return
+
+    if (isSupabaseConfigured) {
+      const paths = lessonAssetPaths(
+        course.modules.flatMap(
+          (module) => module.lessons,
+        ),
+      )
+
+      await deleteCourseRecord(courseId)
+      await cleanupDeletedAssets(paths)
+    } else {
+      releaseLessonObjectUrls(
+        course.modules
+          .flatMap((module) => module.lessons)
+          .flatMap((lesson) => lesson.blocks)
+          .flatMap((block) => [
+            block.audioUrl,
+            block.fileUrl,
+          ]),
+      )
+    }
+
     courses.value.splice(index, 1)
+    fullyLoadedCourseIds.delete(courseId)
   }
   async function setCourseStatus(courseId: string, status: Course['status']): Promise<void> {
     const course = findCourse(courseId)
@@ -595,10 +746,17 @@ export const useCourseStore = defineStore('courses', () => {
     if (!course || !isSupabaseConfigured) return
     await saveCourseOrder(course)
   }
-  async function persistBlockOrder(lessonId: string): Promise<void> {
+    async function persistBlockOrder(
+    lessonId: string,
+  ): Promise<void> {
     const blocks = findLesson(lessonId)?.lesson.blocks
+
     if (!blocks || !isSupabaseConfigured) return
-    await saveBlockOrder(blocks)
+
+    await saveBlockOrder(
+      lessonId,
+      blocks,
+    )
   }
   function resetDemo(): void {
     if (isSupabaseConfigured) return

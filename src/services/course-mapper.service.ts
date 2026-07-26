@@ -1,4 +1,4 @@
-import { createLessonSectionConfig } from '@/composables/useCourseSections'
+import { createLessonSectionConfig } from '@/domain/lesson-sections'
 import type {
   BlockType,
   Course,

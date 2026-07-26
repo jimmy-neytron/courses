@@ -1,27 +1,43 @@
 {
-    "name": "course-platform",
-    "private": true,
-    "version": "0.1.0",
-    "type": "module",
-    "scripts": {
-        "dev": "vite",
-        "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
-        "typecheck": "vue-tsc --noEmit -p tsconfig.app.json"
-    },
-    "dependencies": {
-        "@neytron/compact-ui": "^0.3.4",
-        "@supabase/supabase-js": "^2.110.7",
-        "@vueuse/core": "14.3.0",
-        "lucide-vue-next": "^0.468.0",
-        "pinia": "^3.0.3",
-        "vue": "^3.5.17",
-        "vue-draggable-plus": "^0.6.1",
-        "vue-router": "^4.5.1"
-    },
-    "devDependencies": {
-        "@vitejs/plugin-vue": "^6.0.1",
-        "typescript": "~5.8.3",
-        "vite": "^7.0.6",
-        "vue-tsc": "^3.0.4"
-    }
+  "name": "course-platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build"
+  },
+  "dependencies": {
+    "@neytron/compact-ui": "^0.3.4",
+    "@supabase/supabase-js": "^2.110.7",
+    "@vueuse/core": "14.3.0",
+    "lucide-vue-next": "^0.468.0",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.17",
+    "vue-draggable-plus": "^0.6.1",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.6",
+    "vue-tsc": "^3.0.4",
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.9.2",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.65.0",
+    "vue-eslint-parser": "^10.4.1",
+    "vitest": "^4.1.10"
+  }
 }

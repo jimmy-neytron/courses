@@ -1,9 +1,9 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, watch } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import UiInput from '@/components/ui/UiInput.vue'
 import LessonEditorBlockCard from '@/components/lesson/editor/LessonEditorBlockCard.vue'
-import { resolveLessonBlockSection } from '@/composables/useCourseSections'
+import { resolveLessonBlockSection } from '@/domain/lesson-sections'
 import type { Lesson, LessonBlock, LessonSectionConfig, LessonSectionId } from '@/types/course'
 
 const props = defineProps<{ lesson: Lesson; sections: LessonSectionConfig[]; error?: string }>()

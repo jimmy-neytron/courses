@@ -21,48 +21,6 @@ import type {
 import { requireSupabase } from '@/services/supabase'
 import { slugify } from '@/utils/slugify'
 
-const courseSelect = `
-  id,
-  owner_id,
-  title,
-  description,
-  status,
-  visibility,
-  language_code,
-  source_level,
-  target_level,
-  duration_weeks,
-  lessons_per_week,
-  default_lesson_duration,
-  accent_color,
-  updated_at,
-  owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url),
-  course_modules(
-    id,
-    title,
-    position,
-    is_published,
-    lessons(
-      id,
-      title,
-      duration_minutes,
-      status,
-      position,
-      lesson_blocks(
-        id,
-        block_type,
-        title,
-        public_content,
-        private_content,
-        settings,
-        is_required,
-        points,
-        schema_version,
-        position
-      )
-    )
-  )
-`
 const courseListSelect = `
   id,
   owner_id,
@@ -81,69 +39,7 @@ const courseListSelect = `
   owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url)
 `
 
-const publishSelect = `
-  id,
-  owner_id,
-  slug,
-  title,
-  description,
-  language_code,
-  source_level,
-  target_level,
-  duration_weeks,
-  lessons_per_week,
-  default_lesson_duration,
-  cover_path,
-  accent_color,
-  status,
-  visibility,
-  is_sequential,
-  created_at,
-  updated_at,
-  course_modules(
-    id,
-    title,
-    description,
-    position,
-    is_published,
-    lessons(
-      id,
-      slug,
-      title,
-      description,
-      objectives,
-      duration_minutes,
-      passing_score,
-      position,
-      status,
-      is_preview,
-      lesson_blocks(
-        id,
-        block_type,
-        position,
-        title,
-        public_content,
-        private_content,
-        settings,
-        is_required,
-        points,
-        schema_version
-      )
-    )
-  )
-`
-
 type DatabaseRow = Record<string, unknown>
-
-function throwIfError(error: { message?: string } | null): void {
-  if (error) throw new Error(error.message || 'Ошибка базы данных')
-}
-
-function rows(value: unknown): DatabaseRow[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is DatabaseRow => Boolean(item) && typeof item === 'object')
-    : []
-}
 
 async function resolveAssetUrls(courses: Course[]): Promise<void> {
   const blocks = courses.flatMap((course) => course.modules.flatMap(
@@ -181,18 +77,31 @@ export async function listCourses(_organizationId: string, userId: string): Prom
   return courses
 }
 
-export async function getCourseRecord(courseId: string, userId: string): Promise<Course | undefined> {
-  const { data, error } = await requireSupabase()
-    .from('courses')
-    .select(courseSelect)
-    .eq('id', courseId)
-    .maybeSingle()
+export async function getCourseRecord(
+  courseId: string,
+  userId: string,
+): Promise<Course | undefined> {
+  const { data, error } = await requireSupabase().rpc(
+    'get_course_tree',
+    { p_course_id: courseId },
+  )
 
   if (error) throw error
   if (!data) return undefined
 
-  const course = mapDatabaseCourse(data as unknown as DatabaseRow, userId)
+  const row = Array.isArray(data)
+    ? data[0]
+    : data
+
+  if (!row || typeof row !== 'object') return undefined
+
+  const course = mapDatabaseCourse(
+    row as DatabaseRow,
+    userId,
+  )
+
   await resolveAssetUrls([course])
+
   return course
 }
 
@@ -367,11 +276,13 @@ export async function saveSectionConfigRecord(input: SaveSectionConfigInput): Pr
   return String(data.id)
 }
 
-export async function deleteBlockRecord(blockId: string): Promise<void> {
-  const { error } = await requireSupabase()
-    .from('lesson_blocks')
-    .delete()
-    .eq('id', blockId)
+export async function deleteBlockRecord(
+  blockId: string,
+): Promise<void> {
+  const { error } = await requireSupabase().rpc(
+    'delete_lesson_block',
+    { p_block_id: blockId },
+  )
 
   if (error) throw error
 }
@@ -380,27 +291,21 @@ export async function deleteBlockRecord(blockId: string): Promise<void> {
  * The supplied schema does not declare cascade deletion. Remove dependent
  * progress and block rows before lessons so bulk deletion keeps working.
  */
-export async function deleteLessonRecords(lessonIds: string[]): Promise<void> {
+export async function deleteLessonRecords(
+  courseId: string,
+  lessonIds: string[],
+): Promise<void> {
   if (!lessonIds.length) return
-  const database = requireSupabase()
 
-  const progressResult = await database
-    .from('lesson_progress')
-    .delete()
-    .in('lesson_id', lessonIds)
-  throwIfError(progressResult.error)
+  const { error } = await requireSupabase().rpc(
+    'delete_lessons',
+    {
+      p_course_id: courseId,
+      p_lesson_ids: lessonIds,
+    },
+  )
 
-  const blocksResult = await database
-    .from('lesson_blocks')
-    .delete()
-    .in('lesson_id', lessonIds)
-  throwIfError(blocksResult.error)
-
-  const lessonsResult = await database
-    .from('lessons')
-    .delete()
-    .in('id', lessonIds)
-  throwIfError(lessonsResult.error)
+  if (error) throw error
 }
 
 export async function updateCourseRecord(course: Course): Promise<void> {
@@ -420,136 +325,33 @@ export async function updateCourseRecord(course: Course): Promise<void> {
 }
 
 /** Delete a complete course without relying on ON DELETE CASCADE. */
-export async function deleteCourseRecord(courseId: string): Promise<void> {
-  const database = requireSupabase()
+export async function deleteCourseRecord(
+  courseId: string,
+): Promise<void> {
+  const { error } = await requireSupabase().rpc(
+    'delete_course',
+    { p_course_id: courseId },
+  )
 
-  const progressResult = await database
-    .from('lesson_progress')
-    .delete()
-    .eq('course_id', courseId)
-  throwIfError(progressResult.error)
-
-  const blocksResult = await database
-    .from('lesson_blocks')
-    .delete()
-    .eq('course_id', courseId)
-  throwIfError(blocksResult.error)
-
-  const lessonsResult = await database
-    .from('lessons')
-    .delete()
-    .eq('course_id', courseId)
-  throwIfError(lessonsResult.error)
-
-  const modulesResult = await database
-    .from('course_modules')
-    .delete()
-    .eq('course_id', courseId)
-  throwIfError(modulesResult.error)
-
-  const detachReleaseResult = await database
-    .from('courses')
-    .update({ current_release_id: null })
-    .eq('id', courseId)
-  throwIfError(detachReleaseResult.error)
-
-  const releasesResult = await database
-    .from('course_releases')
-    .delete()
-    .eq('course_id', courseId)
-  throwIfError(releasesResult.error)
-
-  const courseResult = await database
-    .from('courses')
-    .delete()
-    .eq('id', courseId)
-  throwIfError(courseResult.error)
+  if (error) throw error
 }
 
 /**
  * Replacement for the deleted publish_course RPC. It creates an immutable
  * release snapshot and then points courses.current_release_id at that release.
  */
-export async function publishCourseRecord(courseId: string): Promise<void> {
-  const database = requireSupabase()
-  const { data: authData, error: authError } = await database.auth.getUser()
-  if (authError) throw authError
-  if (!authData.user) throw new Error('Для публикации необходимо войти в аккаунт')
-
-  const { data: courseData, error: courseError } = await database
-    .from('courses')
-    .select(publishSelect)
-    .eq('id', courseId)
-    .single()
-
-  if (courseError) throw courseError
-
-  const course = courseData as unknown as DatabaseRow
-  if (String(course.owner_id) !== authData.user.id) {
-    throw new Error('Публиковать курс может только его автор')
-  }
-
-  const modules = rows(course.course_modules)
-  const lessonCount = modules.reduce(
-    (total, module) => total + rows(module.lessons).length,
-    0,
+export async function publishCourseRecord(
+  courseId: string,
+): Promise<void> {
+  const { error } = await requireSupabase().rpc(
+    'publish_course',
+    {
+      p_course_id: courseId,
+      p_changelog: 'Published from Course Platform',
+    },
   )
 
-  const { data: latestRelease, error: latestReleaseError } = await database
-    .from('course_releases')
-    .select('version')
-    .eq('course_id', courseId)
-    .order('version', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (latestReleaseError) throw latestReleaseError
-
-  const publishedAt = new Date().toISOString()
-  const nextVersion = Number(latestRelease?.version ?? 0) + 1
-  const { data: release, error: releaseError } = await database
-    .from('course_releases')
-    .insert({
-      course_id: courseId,
-      version: nextVersion,
-      snapshot: {
-        schemaVersion: 1,
-        publishedAt,
-        course,
-      },
-      module_count: modules.length,
-      lesson_count: lessonCount,
-      changelog: 'Published from Course Platform',
-      published_by: authData.user.id,
-      published_at: publishedAt,
-    })
-    .select('id')
-    .single()
-
-  if (releaseError) throw releaseError
-
-  const lessonsResult = await database
-    .from('lessons')
-    .update({ status: 'published', published_at: publishedAt })
-    .eq('course_id', courseId)
-  throwIfError(lessonsResult.error)
-
-  const modulesResult = await database
-    .from('course_modules')
-    .update({ is_published: true })
-    .eq('course_id', courseId)
-  throwIfError(modulesResult.error)
-
-  const courseResult = await database
-    .from('courses')
-    .update({
-      status: 'published',
-      visibility: 'public',
-      current_release_id: String(release.id),
-      published_at: publishedAt,
-    })
-    .eq('id', courseId)
-  throwIfError(courseResult.error)
+  if (error) throw error
 }
 
 export async function updateModuleStatusRecord(moduleId: string, status: Course['status']): Promise<void> {
@@ -560,38 +362,122 @@ export async function updateModuleStatusRecord(moduleId: string, status: Course[
   if (error) throw error
 }
 
-export async function draftCourseRecord(courseId: string): Promise<void> {
-  const database = requireSupabase()
-  const lessonsResult = await database.from('lessons').update({ status: 'draft', published_at: null }).eq('course_id', courseId)
-  throwIfError(lessonsResult.error)
-  const modulesResult = await database.from('course_modules').update({ is_published: false }).eq('course_id', courseId)
-  throwIfError(modulesResult.error)
-  const courseResult = await database.from('courses').update({ status: 'draft', visibility: 'private', current_release_id: null, published_at: null }).eq('id', courseId)
-  throwIfError(courseResult.error)
-}
-export async function saveCourseOrder(course: Course): Promise<void> {
-  const database = requireSupabase()
-  const moduleResults = await Promise.all(course.modules.map((module, position) => (
-    database.from('course_modules').update({ position }).eq('id', module.id)
-  )))
-  const moduleError = moduleResults.find((result) => result.error)?.error
-  if (moduleError) throw moduleError
+export async function draftCourseRecord(
+  courseId: string,
+): Promise<void> {
+  const { error } = await requireSupabase().rpc(
+    'draft_course',
+    { p_course_id: courseId },
+  )
 
-  const lessonResults = await Promise.all(course.modules.flatMap((module) => (
-    module.lessons.map((lesson, position) => database
-      .from('lessons')
-      .update({ module_id: module.id, position })
-      .eq('id', lesson.id))
-  )))
-  const lessonError = lessonResults.find((result) => result.error)?.error
-  if (lessonError) throw lessonError
+  if (error) throw error
+}
+export async function saveCourseOrder(
+  course: Course,
+): Promise<void> {
+  const modules = course.modules.map(
+    (module, position) => ({
+      id: module.id,
+      position,
+    }),
+  )
+
+  const lessons = course.modules.flatMap(
+    (module) => module.lessons.map(
+      (lesson, position) => ({
+        id: lesson.id,
+        module_id: module.id,
+        position,
+      }),
+    ),
+  )
+
+  const { error } = await requireSupabase().rpc(
+    'reorder_course_tree',
+    {
+      p_course_id: course.id,
+      p_modules: modules,
+      p_lessons: lessons,
+    },
+  )
+
+  if (error) throw error
 }
 
-export async function saveBlockOrder(blocks: LessonBlock[]): Promise<void> {
-  const database = requireSupabase()
-  const results = await Promise.all(blocks.map((block, position) => (
-    database.from('lesson_blocks').update({ position }).eq('id', block.id)
-  )))
-  const error = results.find((result) => result.error)?.error
+export async function saveBlockOrder(
+  lessonId: string,
+  blocks: LessonBlock[],
+): Promise<void> {
+  const { error } = await requireSupabase().rpc(
+    'reorder_lesson_blocks',
+    {
+      p_lesson_id: lessonId,
+      p_blocks: blocks.map(
+        (block, position) => ({
+          id: block.id,
+          position,
+        }),
+      ),
+    },
+  )
+
+  if (error) throw error
+}
+
+
+export async function duplicateLessonRecord(
+  lessonId: string,
+  targetModuleId: string,
+  position: number,
+  title: string,
+): Promise<string> {
+  const { data, error } = await requireSupabase().rpc(
+    'duplicate_lesson',
+    {
+      p_lesson_id: lessonId,
+      p_target_module_id: targetModuleId,
+      p_position: position,
+      p_title: title,
+    },
+  )
+
+  if (error) throw error
+  if (!data) throw new Error('Сервер не вернул ID копии урока')
+
+  return String(data)
+}
+
+export async function duplicateModuleRecord(
+  moduleId: string,
+  position: number,
+  title: string,
+): Promise<string> {
+  const { data, error } = await requireSupabase().rpc(
+    'duplicate_module',
+    {
+      p_module_id: moduleId,
+      p_position: position,
+      p_title: title,
+    },
+  )
+
+  if (error) throw error
+  if (!data) throw new Error('Сервер не вернул ID копии модуля')
+
+  return String(data)
+}
+
+export async function acknowledgeStorageCleanup(
+  paths: string[],
+): Promise<void> {
+  const validPaths = paths.filter(Boolean)
+
+  if (!validPaths.length) return
+
+  const { error } = await requireSupabase().rpc(
+    'ack_storage_cleanup',
+    { p_paths: validPaths },
+  )
+
   if (error) throw error
 }

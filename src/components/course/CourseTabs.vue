@@ -1,19 +1,35 @@
-<script setup lang="ts">
-import { UiTabs } from '@neytron/compact-ui/tabs'
-import { BookOpen, LayoutList, Settings2 } from 'lucide-vue-next'
-import type { CourseDetailsTab } from '@/composables/useCourseDetails'
+﻿<script setup lang="ts">
+import UiSegmented from "@/components/ui/UiSegmented.vue"
+import type { CourseDetailsTab } from "@/composables/useCourseDetails"
 
 const props = defineProps<{ modelValue: CourseDetailsTab }>()
-const emit = defineEmits<{ 'update:modelValue': [value: CourseDetailsTab] }>()
-const tabs = [
-  { value: 'overview', label: 'Обзор', icon: LayoutList },
-  { value: 'curriculum', label: 'Программа', icon: BookOpen },
-  { value: 'settings', label: 'Настройки', icon: Settings2 },
-] as const
+const emit = defineEmits<{ "update:modelValue": [value: CourseDetailsTab] }>()
+
+const tabs: { value: CourseDetailsTab; label: string }[] = [
+  { value: "overview", label: "\u041e\u0431\u0437\u043e\u0440" },
+  { value: "curriculum", label: "\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430" },
+  { value: "settings", label: "\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438" },
+]
+const values = tabs.map((tab) => tab.value)
+const labels = new Map<CourseDetailsTab, string>(tabs.map((tab) => [tab.value, tab.label]))
+const ariaLabel = "\u0420\u0430\u0437\u0434\u0435\u043b\u044b \u043a\u0443\u0440\u0441\u0430"
+
+function formatTab(value: CourseDetailsTab): string {
+  return labels.get(value) ?? value
+}
+
+function handleUpdate(value: CourseDetailsTab): void {
+  emit("update:modelValue", value)
+}
 </script>
 
 <template>
-  <UiTabs class="product-tabs" aria-label="Разделы курса" :model-value="props.modelValue" :items="tabs" @update:model-value="emit('update:modelValue', $event)">
-    <template #tab="{ item }"><component :is="tabs.find((tab) => tab.value === item.value)?.icon" />{{ item.label }}</template>
-  </UiTabs>
+  <UiSegmented
+    class="product-tabs product-tabs-segmented"
+    :aria-label="ariaLabel"
+    :model-value="props.modelValue"
+    :options="values"
+    :format-label="formatTab"
+    @update:model-value="handleUpdate"
+  />
 </template>

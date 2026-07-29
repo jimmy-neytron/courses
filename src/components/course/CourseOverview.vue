@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Course } from '@/types/course'
+import { formatDuration } from '@/utils/format-duration'
 import CourseRoleBadge from '@/components/course/CourseRoleBadge.vue'
 import CourseLearningPlan from '@/components/course/CourseLearningPlan.vue'
 
@@ -14,7 +15,7 @@ defineProps<{ course: Course; moduleCount: number; lessonCount: number; totalMin
       <dl>
         <div><dt>Модулей</dt><dd>{{ moduleCount }}</dd></div>
         <div><dt>Уроков</dt><dd>{{ lessonCount }}</dd></div>
-        <div><dt>Длительность</dt><dd>{{ Math.round(totalMinutes / 60) }} часов</dd></div>
+        <div><dt>Длительность</dt><dd>{{ formatDuration(totalMinutes) }}</dd></div>
         <div><dt>Статус</dt><dd>{{ course.status }}</dd></div>
         <div><dt>Ваша роль</dt><dd><CourseRoleBadge :role="course.accessRole" :creator-name="course.creator.name" /></dd></div>
         <div><dt>Автор</dt><dd>{{ course.creator.name }}</dd></div>

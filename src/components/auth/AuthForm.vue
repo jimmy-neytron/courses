@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { GraduationCap } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import { useAuthForm } from '@/composables/useAuthForm'
@@ -9,12 +8,10 @@ const { isLogin, name, email, password, busy, submit, switchMode } = useAuthForm
 
 <template>
   <form @submit.prevent="submit">
-    <div class="mobile-brand"><GraduationCap />Курсор</div>
-    <p class="eyebrow">Добро пожаловать</p>
-    <h1>{{ isLogin ? 'Войдите в аккаунт' : 'Создайте аккаунт' }}</h1>
-    <p>{{ isLogin ? 'Продолжите работу над своими курсами.' : 'Личное пространство создастся автоматически.' }}</p>
+    <h1>{{ isLogin ? 'Вход' : 'Регистрация' }}</h1>
+    <p>{{ isLogin ? 'Введите данные своего аккаунта.' : 'Создайте аккаунт, чтобы начать работу.' }}</p>
 
-    <label v-if="!isLogin">Ваше имя
+    <label v-if="!isLogin">Имя
       <UiInput v-model="name" required autocomplete="name" placeholder="Алексей Петров" fluid />
     </label>
     <label>Email
@@ -27,8 +24,6 @@ const { isLogin, name, email, password, busy, submit, switchMode } = useAuthForm
         :minlength="6"
         :autocomplete="isLogin ? 'current-password' : 'new-password'"
         placeholder="Минимум 6 символов"
-
-
         fluid
       />
     </label>

@@ -1,6 +1,6 @@
 import type { Course } from '@/types/course'
 
-const SUPABASE_CACHE_PREFIX = 'course-platform-cache-v3-'
+const SUPABASE_CACHE_PREFIX = 'course-platform-cache-v4-'
 const SUPABASE_CACHE_VERSION = 3
 const SUPABASE_CACHE_TTL_MS = 10 * 60 * 1000
 const DEMO_CACHE_KEY = 'cursor-courses-v4'

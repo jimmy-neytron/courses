@@ -69,7 +69,7 @@ async function confirmRevoke(): Promise<void> {
       <span class="eyebrow">Integrations API</span>
       <h2>Персональные токены</h2>
       <p>
-        Подключайте Courses к календарю и другим доверенным приложениям.
+        Подключайте course-center-app к календарю и другим доверенным приложениям.
         Токен даёт только чтение опубликованных курсов.
       </p>
       <div class="integration-token-security">
@@ -158,7 +158,7 @@ async function confirmRevoke(): Promise<void> {
       @close="revokingId || (revokeTokenId = '')"
     >
       <p>
-        Подключённый календарь сразу потеряет доступ к Courses.
+        Подключённый календарь сразу потеряет доступ к course-center-app.
         Созданные ранее события календаря не изменятся.
       </p>
       <div class="form-actions">

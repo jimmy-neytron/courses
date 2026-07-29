@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
-import { BookOpen, GraduationCap, LogOut, Settings } from 'lucide-vue-next'
+import { BookOpen, LogOut, Settings } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 
@@ -15,6 +15,11 @@ const navigation = [
   { to: '/app/settings', icon: Settings, label: 'Настройки' },
 ]
 const name = computed(() => String(auth.user?.user_metadata?.display_name ?? auth.user?.email ?? 'Пользователь'))
+const accountDetails = computed(() => {
+  const email = auth.user?.email?.trim()
+
+  return email && email !== name.value ? email : 'Личный аккаунт'
+})
 const initials = computed(() => name.value
   .split(/[ @]/)
   .filter(Boolean)
@@ -36,10 +41,6 @@ async function logout(): Promise<void> {
 <template>
   <div v-if="layout.sidebarOpen" class="sidebar-overlay" @click="layout.closeSidebar" />
   <aside :class="['sidebar workspace-sidebar', layout.sidebarOpen && 'is-open']" aria-label="Основная навигация">
-    <RouterLink to="/app/courses" class="brand workspace-brand" @click="layout.closeSidebar">
-      <span class="brand-mark"><GraduationCap :size="21" /></span>
-      <span><strong>Курсор</strong><small>Course studio</small></span>
-    </RouterLink>
     <p class="sidebar-label">Рабочее пространство</p>
     <nav>
       <RouterLink v-for="item in navigation" :key="item.to" :to="item.to" @click="layout.closeSidebar">
@@ -49,7 +50,7 @@ async function logout(): Promise<void> {
     <div class="sidebar-bottom">
       <div class="sidebar-account">
         <span class="sidebar-avatar" aria-hidden="true">{{ initials }}</span>
-        <div><b>{{ name }}</b><small>{{ auth.organization?.name ?? 'Личное пространство' }}</small></div>
+        <div><b>{{ name }}</b><small>{{ accountDetails }}</small></div>
         <button class="icon-action" type="button" aria-label="Выйти" title="Выйти" @click="logout"><LogOut /></button>
       </div>
     </div>

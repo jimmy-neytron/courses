@@ -410,6 +410,25 @@
   font-size: var(--font-caption);
 }
 
+.product-course-card .course-meta {
+  align-items: center;
+  gap: 12px;
+}
+
+.product-course-card .course-meta span {
+  gap: 5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.product-course-card .course-meta svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  color: #66e19d;
+  stroke-width: 1.8;
+}
+
 .product-toolbar .ui-input {
   min-height: 38px;
   padding: 0;
@@ -1068,6 +1087,63 @@ button:disabled {
 }
 .auth-form .auth-switch-action:hover { color: var(--accent-hover, #34e89a); text-decoration: underline; text-underline-offset: 3px; }
 .auth-form .auth-switch-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
+
+/* Compact, distraction-free authentication. */
+.auth-page {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 12%, #00dc8218, transparent 34%),
+    var(--bg);
+}
+
+.auth-card {
+  width: min(420px, 100%);
+  padding: clamp(26px, 5vw, 40px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 24px 80px #0008, inset 0 1px #ffffff08;
+}
+
+.auth-card .auth-form {
+  display: block;
+  padding: 0;
+  background: transparent;
+}
+
+.auth-card .auth-form > form {
+  width: 100%;
+}
+
+.auth-card .auth-form h1 {
+  margin: 0 0 8px;
+  font-size: clamp(26px, 5vw, 32px);
+  letter-spacing: -.035em;
+}
+
+.auth-card .auth-form > form > p:not(.auth-switch) {
+  margin: 0 0 28px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.auth-footnote {
+  margin: 24px 0 0;
+  color: #68776e;
+  font-size: 11px;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .auth-page { padding: 16px; }
+  .auth-card { padding: 26px 20px; border-radius: 16px; }
+}
+
 /* Dropdown menu normalization from @neytron/compact-ui. */
 .ui-dropdown-menu .cui-menu {
   min-width: 196px;

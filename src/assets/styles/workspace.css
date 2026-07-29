@@ -14,7 +14,6 @@
 }
 
 .workspace-brand {
-  gap: 12px;
   padding: 0 8px 34px;
 }
 
@@ -24,8 +23,10 @@
 }
 
 .workspace-brand strong {
-  font-size: 17px;
-  letter-spacing: -.025em;
+  font-family: "Unbounded", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -.045em;
 }
 
 .workspace-brand small,

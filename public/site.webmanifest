@@ -1,0 +1,22 @@
+{
+  "name": "course-center-app",
+  "short_name": "course-center-app",
+  "description": "Создавайте современные онлайн-курсы, уроки и интерактивные практические задания.",
+  "lang": "ru",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060907",
+  "theme_color": "#00DC82",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

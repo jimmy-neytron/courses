@@ -36,7 +36,20 @@ const courseListSelect = `
   default_lesson_duration,
   accent_color,
   updated_at,
-  owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url)
+  owner:profiles!courses_owner_id_fkey(id,display_name,avatar_url),
+  course_modules(
+    id,
+    title,
+    position,
+    is_published,
+    lessons(
+      id,
+      title,
+      duration_minutes,
+      position,
+      status
+    )
+  )
 `
 
 type DatabaseRow = Record<string, unknown>

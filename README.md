@@ -273,3 +273,28 @@ npm run build
 ```
 
 Перед изменением SQL сделайте резервную копию Supabase и сравните фактическую схему с ожидаемой. Приложенная выгрузка схемы предназначена только для документации: порядок таблиц и constraints в ней не гарантирует исполняемость.
+## Calendar integration API
+
+Courses exposes an opaque personal-token API through the
+`courses-integration` Supabase Edge Function.
+
+Apply migrations through `17_integration_api_tokens.sql`, set the
+`COURSES_PUBLIC_APP_URL` Edge Function secret, and deploy the function with
+JWT verification disabled as declared in `supabase/config.toml`.
+
+Use the deployed function URL as the API base:
+
+```text
+https://<project>.supabase.co/functions/v1/courses-integration
+```
+
+Read-only endpoints:
+
+```text
+GET <base>/integration/v1/courses
+GET <base>/integration/v1/courses/{courseId}/manifest?releaseId={releaseId}
+```
+
+Both endpoints require `Authorization: Bearer <personal-token>`. Users create
+and revoke tokens on the Courses settings page; the raw secret is displayed
+only once.

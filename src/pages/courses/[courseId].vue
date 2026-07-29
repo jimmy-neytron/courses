@@ -25,12 +25,14 @@ const {
   lessonDialogOpen,
   deleteDialogOpen,
   deleteLessonsDialogOpen,
+  deleteModuleDialogOpen,
   moduleTitle,
   lessonTitle,
   orderSaving,
   duplicatingId,
   deleting,
   deletingLessons,
+  deletingModuleId,
   selectionMode,
   selectedLessonIds,
   saved,
@@ -46,7 +48,10 @@ const {
   toggleLessonSelection,
   toggleModuleLessons,
   requestDeleteSelectedLessons,
+  requestDeleteLesson,
+  requestDeleteModule,
   deleteSelectedLessons,
+  deleteModule,
   saveSettings,
   toggleCourseStatus,
   toggleModuleStatus,
@@ -64,7 +69,7 @@ const {
         <CourseHero :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" @toggle-status="toggleCourseStatus" @share="shareCourse" @delete="deleteDialogOpen = true" />
         <div v-if="actionError" class="product-alert is-error">{{ actionError }}</div>
         <CourseTabs v-if="canManage" v-model="tab" />
-        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" :selection-mode="selectionMode" :selected-lesson-ids="selectedLessonIds" :deleting-lessons="deletingLessons" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" @toggle-module-status="toggleModuleStatus" @toggle-lesson-status="toggleLessonStatus" @toggle-selection-mode="toggleSelectionMode" @toggle-lesson="toggleLessonSelection" @toggle-module-lessons="toggleModuleLessons" @delete-selected="requestDeleteSelectedLessons" />
+        <CourseCurriculum v-if="canManage && tab === 'curriculum'" v-model="modules" :saving="orderSaving" :saved="saved" :duplicating-id="duplicatingId" :selection-mode="selectionMode" :selected-lesson-ids="selectedLessonIds" :deleting-lessons="deletingLessons" :deleting-module-id="deletingModuleId" @reorder="persistOrder" @add-module="moduleDialogOpen = true" @add-lesson="openLessonDialog" @duplicate-module="duplicateModule" @duplicate-lesson="duplicateLesson" @delete-module="requestDeleteModule" @delete-lesson="requestDeleteLesson" @toggle-module-status="toggleModuleStatus" @toggle-lesson-status="toggleLessonStatus" @toggle-selection-mode="toggleSelectionMode" @toggle-lesson="toggleLessonSelection" @toggle-module-lessons="toggleModuleLessons" @delete-selected="requestDeleteSelectedLessons" />
         <CourseOverview v-else-if="!canManage || tab === 'overview'" :course="course" :module-count="modules.length" :lesson-count="totalLessons" :total-minutes="totalMinutes" />
         <CourseSettingsForm v-else-if="canManage" :course="course" :saved="saved" @save="saveSettings" />
       </div>
@@ -87,6 +92,13 @@ const {
         <div class="bulk-lesson-delete">
           <div class="bulk-lesson-delete-warning"><AlertTriangle /><div><strong>Удалить уроки: {{ selectedLessonIds.length }}?</strong><p>Уроки и все их блоки будут удалены без возможности восстановления.</p></div></div>
           <div class="form-actions"><UiButton severity="secondary" outlined :disabled="deletingLessons" @click="deleteLessonsDialogOpen = false">Отмена</UiButton><UiButton severity="danger" :loading="deletingLessons" @click="deleteSelectedLessons"><Trash2 />Удалить</UiButton></div>
+        </div>
+      </UiModal>
+
+      <UiModal v-if="deleteModuleDialogOpen" title="Удалить модуль" @close="deletingModuleId || (deleteModuleDialogOpen = false)">
+        <div class="bulk-lesson-delete">
+          <div class="bulk-lesson-delete-warning"><AlertTriangle /><div><strong>Удалить модуль?</strong><p>Модуль, все его уроки и блоки будут удалены без возможности восстановления.</p></div></div>
+          <div class="form-actions"><UiButton severity="secondary" outlined :disabled="Boolean(deletingModuleId)" @click="deleteModuleDialogOpen = false">Отмена</UiButton><UiButton severity="danger" :loading="Boolean(deletingModuleId)" @click="deleteModule"><Trash2 />Удалить</UiButton></div>
         </div>
       </UiModal>
 

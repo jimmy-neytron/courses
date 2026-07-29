@@ -31,6 +31,7 @@ import {
   acknowledgeStorageCleanup,
   deleteBlockRecord,
   deleteCourseRecord,
+  deleteModuleRecord,
   draftCourseRecord,
   deleteLessonRecords,
   listCourses,
@@ -86,6 +87,55 @@ function duplicateLocalLesson(source: Lesson, title = source.title): Lesson {
   }
 }
 
+function createCourseDraft(
+  id: string,
+  ownerId: string,
+  ownerName: string,
+  input: CourseCreateInput,
+): Course {
+  const hasPlan = Boolean(
+    input.durationWeeks
+    && input.lessonsPerWeek,
+  )
+
+  return {
+    id,
+    ownerId,
+    accessRole: 'creator',
+    creator: {
+      id: ownerId,
+      name: ownerName,
+    },
+    kind: input.kind,
+    languageCode: input.languageCode,
+    sourceLevel: input.sourceLevel,
+    targetLevel: input.targetLevel,
+    defaultLessonDuration: input.defaultLessonDuration,
+    learningPlan: hasPlan ? {
+      durationWeeks: input.durationWeeks!,
+      sessionsPerWeek: input.lessonsPerWeek!,
+      sessionMinutes: input.defaultLessonDuration,
+      totalSessions: 0,
+      checkpointCount: 0,
+      cadence: `${input.lessonsPerWeek} занятий в неделю`,
+      outcome: input.kind === 'language'
+        ? `Путь от ${input.sourceLevel ?? 'начального уровня'} до ${input.targetLevel ?? 'целевого уровня'}`
+        : `План освоения курса «${input.title}»`,
+    } : undefined,
+    title: input.title,
+    description: input.description,
+    cover: 'linear-gradient(135deg,#176452,#3ac3a6)',
+    tag: input.kind === 'language'
+      ? input.targetLevel
+        ?? input.languageCode?.toUpperCase()
+        ?? 'ЯЗЫК'
+      : 'КУРС',
+    status: 'Черновик',
+    updated: 'Только что',
+    modules: [],
+  }
+}
+
 
 function lessonAssetPaths(lessons: Lesson[]): string[] {
   return lessons
@@ -131,6 +181,7 @@ export const useCourseStore = defineStore('courses', () => {
   let bootstrapPromise: Promise<void> | undefined
   let refreshPromise: Promise<void> | undefined
   const fullyLoadedCourseIds = new Set<string>()
+  const courseLoadPromises = new Map<string, Promise<void>>()
 
   if (!isSupabaseConfigured) {
     watch(courses, (value) => writeDemoCourses(value), { deep: true })
@@ -148,12 +199,23 @@ export const useCourseStore = defineStore('courses', () => {
     return courses.value.find((course) => course.id === courseId)
   }
 
+  function isCourseLoaded(courseId: string): boolean {
+    return fullyLoadedCourseIds.has(courseId)
+  }
+
   function findLesson(lessonId: string) {
     for (const course of courses.value) {
       for (const module of course.modules) {
         const lesson = module.lessons.find((item) => item.id === lessonId)
         if (lesson) return { course, module, lesson }
       }
+    }
+  }
+
+  function persistCourseCache(): void {
+    const organizationId = useAuthStore().organization?.id
+    if (isSupabaseConfigured && organizationId) {
+      writeCourseCache(organizationId, courses.value)
     }
   }
 
@@ -234,26 +296,36 @@ export const useCourseStore = defineStore('courses', () => {
     return bootstrapPromise
   }
 
-  async function loadAccessibleCourse(courseId: string, force = false): Promise<void> {
-    if (!courseId || !isSupabaseConfigured) return
+  function loadAccessibleCourse(courseId: string, force = false): Promise<void> {
+    if (!courseId || !isSupabaseConfigured) return Promise.resolve()
     const existing = findCourse(courseId)
-    if (!force && existing && fullyLoadedCourseIds.has(courseId)) return
+    if (!force && existing && fullyLoadedCourseIds.has(courseId)) return Promise.resolve()
+    const pending = courseLoadPromises.get(courseId)
+    if (pending) return pending
 
     const userId = useAuthStore().user?.id ?? ''
     loadError.value = ''
-    try {
-      const course = await getCourseRecord(courseId, userId)
-      if (useAuthStore().user?.id !== userId) return
-      if (!course) return
+    const request = (async () => {
+      try {
+        const course = await getCourseRecord(courseId, userId)
+        if (useAuthStore().user?.id !== userId) return
+        if (!course) return
 
-      const index = courses.value.findIndex((item) => item.id === course.id)
-      if (index >= 0) courses.value.splice(index, 1, course)
-      else courses.value.push(course)
-      fullyLoadedCourseIds.add(course.id)
-    } catch (error) {
-      loadError.value = errorMessage(error, 'Не удалось открыть курс')
-      throw error
-    }
+        const index = courses.value.findIndex((item) => item.id === course.id)
+        if (index >= 0) courses.value.splice(index, 1, course)
+        else courses.value.push(course)
+        fullyLoadedCourseIds.add(course.id)
+        persistCourseCache()
+      } catch (error) {
+        loadError.value = errorMessage(error, 'Не удалось открыть курс')
+        throw error
+      }
+    })().finally(() => {
+      courseLoadPromises.delete(courseId)
+    })
+
+    courseLoadPromises.set(courseId, request)
+    return request
   }
 
   async function loadAccessibleLesson(lessonId: string): Promise<void> {
@@ -270,36 +342,14 @@ export const useCourseStore = defineStore('courses', () => {
   async function createCourse(input: CourseCreateInput): Promise<string> {
     if (!isSupabaseConfigured) {
       const id = `course-${Date.now()}`
-      const hasPlan = Boolean(input.durationWeeks && input.lessonsPerWeek)
-      courses.value.unshift({
-        id,
-        ownerId: 'demo-user',
-        accessRole: 'creator',
-        creator: { id: 'demo-user', name: 'Вы' },
-        kind: input.kind,
-        languageCode: input.languageCode,
-        sourceLevel: input.sourceLevel,
-        targetLevel: input.targetLevel,
-        defaultLessonDuration: input.defaultLessonDuration,
-        learningPlan: hasPlan ? {
-          durationWeeks: input.durationWeeks!,
-          sessionsPerWeek: input.lessonsPerWeek!,
-          sessionMinutes: input.defaultLessonDuration,
-          totalSessions: 0,
-          checkpointCount: 0,
-          cadence: `${input.lessonsPerWeek} занятий в неделю`,
-          outcome: input.kind === 'language'
-            ? `Путь от ${input.sourceLevel ?? 'начального уровня'} до ${input.targetLevel ?? 'целевого уровня'}`
-            : `План освоения курса «${input.title}»`,
-        } : undefined,
-        title: input.title,
-        description: input.description,
-        cover: 'linear-gradient(135deg,#176452,#3ac3a6)',
-        tag: input.kind === 'language' ? input.targetLevel ?? input.languageCode?.toUpperCase() ?? 'ЯЗЫК' : 'КУРС',
-        status: 'Черновик',
-        updated: 'Только что',
-        modules: [],
-      })
+      courses.value.unshift(
+        createCourseDraft(
+          id,
+          'demo-user',
+          'Вы',
+          input,
+        ),
+      )
       return id
     }
 
@@ -307,7 +357,16 @@ export const useCourseStore = defineStore('courses', () => {
     if (!auth.organization || !auth.user) throw new Error('Организация пользователя не найдена')
 
     const id = await createCourseRecord(auth.organization.id, auth.user.id, input)
-    await hydrate(true)
+    courses.value.unshift(
+      createCourseDraft(
+        id,
+        auth.user.id,
+        auth.organization.name || 'Вы',
+        input,
+      ),
+    )
+    fullyLoadedCourseIds.add(id)
+    persistCourseCache()
     return id
   }
 
@@ -321,8 +380,19 @@ export const useCourseStore = defineStore('courses', () => {
       return
     }
 
-    await createModuleRecord(courseId, title, course.modules.length)
-    await loadAccessibleCourse(courseId, true)
+    const id = await createModuleRecord(
+      courseId,
+      title,
+      course.modules.length,
+    )
+    course.modules.push({
+      id,
+      title,
+      open: true,
+      status: 'Черновик',
+      lessons: [],
+    })
+    persistCourseCache()
   }
   async function addLesson(courseId: string, moduleId: string, title = 'Новый урок'): Promise<string | undefined> {
     const course = findCourse(courseId)
@@ -349,7 +419,18 @@ export const useCourseStore = defineStore('courses', () => {
       module.lessons.length,
       course.defaultLessonDuration,
     )
-    await loadAccessibleCourse(courseId, true)
+    module.lessons.push({
+      id,
+      title,
+      duration: course.defaultLessonDuration,
+      status: 'Черновик',
+      blocks: [],
+      sectionConfig: createLessonSectionConfig(
+        undefined,
+        course.kind,
+      ),
+    })
+    persistCourseCache()
     return id
   }
     async function duplicateLesson(
@@ -529,6 +610,48 @@ export const useCourseStore = defineStore('courses', () => {
         (lesson) => !selected.has(lesson.id),
       )
     }
+    persistCourseCache()
+  }
+
+  async function removeModule(
+    courseId: string,
+    moduleId: string,
+  ): Promise<void> {
+    const course = findCourse(courseId)
+    const moduleIndex = course?.modules.findIndex(
+      (item) => item.id === moduleId,
+    ) ?? -1
+    const module = moduleIndex >= 0
+      ? course?.modules[moduleIndex]
+      : undefined
+
+    if (
+      !course
+      || !module
+      || course.accessRole !== 'creator'
+    ) {
+      return
+    }
+
+    const lessons = module.lessons
+
+    if (isSupabaseConfigured) {
+      const paths = lessonAssetPaths(lessons)
+      await deleteModuleRecord(courseId, moduleId)
+      await cleanupDeletedAssets(paths)
+    } else {
+      releaseLessonObjectUrls(
+        lessons
+          .flatMap((lesson) => lesson.blocks)
+          .flatMap((block) => [
+            block.audioUrl,
+            block.fileUrl,
+          ]),
+      )
+    }
+
+    course.modules.splice(moduleIndex, 1)
+    persistCourseCache()
   }
 
   async function addBlock(lessonId: string, type: BlockType): Promise<void> {
@@ -711,6 +834,8 @@ export const useCourseStore = defineStore('courses', () => {
 
     courses.value.splice(index, 1)
     fullyLoadedCourseIds.delete(courseId)
+    courseLoadPromises.delete(courseId)
+    persistCourseCache()
   }
   async function setCourseStatus(courseId: string, status: Course['status']): Promise<void> {
     const course = findCourse(courseId)
@@ -725,7 +850,14 @@ export const useCourseStore = defineStore('courses', () => {
     }
     if (status === 'Опубликован') await publishCourseRecord(courseId)
     else await draftCourseRecord(courseId)
-    await loadAccessibleCourse(courseId, true)
+    course.status = status
+    course.modules.forEach((module) => {
+      module.status = status
+      module.lessons.forEach((lesson) => {
+        lesson.status = status
+      })
+    })
+    persistCourseCache()
   }
   async function setModuleStatus(courseId: string, moduleId: string, status: Course['status']): Promise<void> {
     const module = findCourse(courseId)?.modules.find((item) => item.id === moduleId)
@@ -771,6 +903,7 @@ export const useCourseStore = defineStore('courses', () => {
     loadError,
     totalLessons,
     findCourse,
+    isCourseLoaded,
     findLesson,
     hydrate,
     loadAccessibleCourse,
@@ -781,6 +914,7 @@ export const useCourseStore = defineStore('courses', () => {
     duplicateLesson,
     duplicateModule,
     removeLessons,
+    removeModule,
     addBlock,
     saveLesson,
     saveBlock,

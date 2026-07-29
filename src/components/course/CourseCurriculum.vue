@@ -14,6 +14,7 @@ const props = defineProps<{
   selectionMode?: boolean
   selectedLessonIds?: string[]
   deletingLessons?: boolean
+  deletingModuleId?: string
 }>()
 const emit = defineEmits<{
   'update:modelValue': [value: CourseModule[]]
@@ -22,6 +23,8 @@ const emit = defineEmits<{
   addLesson: [moduleId: string]
   duplicateModule: [moduleId: string]
   duplicateLesson: [moduleId: string, lessonId: string]
+  deleteModule: [moduleId: string]
+  deleteLesson: [lessonId: string]
   toggleModuleStatus: [moduleId: string]
   toggleLessonStatus: [lessonId: string]
   toggleSelectionMode: []
@@ -143,6 +146,18 @@ onBeforeUnmount(stopLongPress)
             title="Дублировать модуль"
             @click="emit('duplicateModule', module.id)"
           ><CopyPlus /></UiButton>
+          <UiButton
+            v-if="!selectionMode"
+            severity="danger"
+            text
+            rounded
+            size="small"
+            :loading="deletingModuleId === module.id"
+            :disabled="Boolean(deletingModuleId)"
+            :aria-label="`Удалить модуль ${module.title}`"
+            title="Удалить модуль"
+            @click="emit('deleteModule', module.id)"
+          ><Trash2 /></UiButton>
         </header>
 
         <div v-show="module.open" class="product-lessons">
@@ -178,6 +193,17 @@ onBeforeUnmount(stopLongPress)
                 title="Дублировать урок"
                 @click="emit('duplicateLesson', module.id, lesson.id)"
               ><CopyPlus /></UiButton>
+              <UiButton
+                v-if="!selectionMode"
+                severity="danger"
+                text
+                rounded
+                size="small"
+                :disabled="deletingLessons"
+                :aria-label="`Удалить урок ${lesson.title}`"
+                title="Удалить урок"
+                @click="emit('deleteLesson', lesson.id)"
+              ><Trash2 /></UiButton>
             </div>
           </VueDraggable>
           <button v-if="!selectionMode" class="product-add-row" @click="emit('addLesson', module.id)"><Plus />Добавить урок в модуль</button>

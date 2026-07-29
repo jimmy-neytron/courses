@@ -30,6 +30,7 @@ export function useCourseDetails() {
   const lessonDialogOpen = ref(false)
   const deleteDialogOpen = ref(false)
   const deleteLessonsDialogOpen = ref(false)
+  const deleteModuleDialogOpen = ref(false)
   const moduleTitle = ref('')
   const lessonTitle = ref('')
   const lessonModuleId = ref('')
@@ -37,6 +38,8 @@ export function useCourseDetails() {
   const duplicatingId = ref('')
   const deleting = ref(false)
   const deletingLessons = ref(false)
+  const deletingModuleId = ref('')
+  const moduleToDeleteId = ref('')
   const selectionMode = ref(false)
   const selectedLessonIds = ref<string[]>([])
   const selectionAnchorId = ref('')
@@ -156,6 +159,36 @@ export function useCourseDetails() {
     if (selectedLessonIds.value.length) deleteLessonsDialogOpen.value = true
   }
 
+  function requestDeleteLesson(lessonId: string): void {
+    selectedLessonIds.value = [lessonId]
+    selectionMode.value = false
+    selectionAnchorId.value = lessonId
+    deleteLessonsDialogOpen.value = true
+  }
+
+  function requestDeleteModule(moduleId: string): void {
+    moduleToDeleteId.value = moduleId
+    deleteModuleDialogOpen.value = true
+  }
+
+  async function deleteModule(): Promise<void> {
+    if (!course.value || !canManage.value || !moduleToDeleteId.value) return
+
+    const moduleId = moduleToDeleteId.value
+    deletingModuleId.value = moduleId
+    const deleted = await run(
+      () => store.removeModule(course.value!.id, moduleId),
+      'Не удалось удалить модуль',
+      'Модуль удалён',
+    )
+    deletingModuleId.value = ''
+
+    if (deleted) {
+      moduleToDeleteId.value = ''
+      deleteModuleDialogOpen.value = false
+    }
+  }
+
   async function deleteSelectedLessons(): Promise<void> {
     if (!course.value || !canManage.value || !selectedLessonIds.value.length) return
     const lessonIds = [...selectedLessonIds.value]
@@ -253,12 +286,14 @@ export function useCourseDetails() {
     lessonDialogOpen,
     deleteDialogOpen,
     deleteLessonsDialogOpen,
+    deleteModuleDialogOpen,
     moduleTitle,
     lessonTitle,
     orderSaving,
     duplicatingId,
     deleting,
     deletingLessons,
+    deletingModuleId,
     selectionMode,
     selectedLessonIds,
     saved,
@@ -274,7 +309,10 @@ export function useCourseDetails() {
     toggleLessonSelection,
     toggleModuleLessons,
     requestDeleteSelectedLessons,
+    requestDeleteLesson,
+    requestDeleteModule,
     deleteSelectedLessons,
+    deleteModule,
     saveSettings,
     toggleCourseStatus,
     toggleModuleStatus,

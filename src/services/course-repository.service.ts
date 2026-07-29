@@ -308,6 +308,21 @@ export async function deleteLessonRecords(
   if (error) throw error
 }
 
+export async function deleteModuleRecord(
+  courseId: string,
+  moduleId: string,
+): Promise<void> {
+  const { error } = await requireSupabase().rpc(
+    'delete_course_module',
+    {
+      p_course_id: courseId,
+      p_module_id: moduleId,
+    },
+  )
+
+  if (error) throw error
+}
+
 export async function updateCourseRecord(course: Course): Promise<void> {
   const { error } = await requireSupabase()
     .from('courses')

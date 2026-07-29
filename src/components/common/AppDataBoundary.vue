@@ -12,7 +12,7 @@ const store = useCourseStore()
 
 function hasRouteData(courseId: string, lessonId: string): boolean {
   if (lessonId) return Boolean(store.findLesson(lessonId))
-  if (courseId) return Boolean(store.findCourse(courseId))
+  if (courseId) return store.isCourseLoaded(courseId)
   return store.hydrated
 }
 
@@ -23,9 +23,16 @@ watch(
   async ([courseId, lessonId]) => {
     if (!hasRouteData(courseId, lessonId)) ready.value = false
     try {
-      await store.hydrate()
-      if (courseId) await store.loadAccessibleCourse(courseId)
-      if (lessonId) await store.loadAccessibleLesson(lessonId)
+      const routeRequest = courseId
+        ? store.loadAccessibleCourse(courseId)
+        : lessonId
+          ? store.loadAccessibleLesson(lessonId)
+          : Promise.resolve()
+
+      await Promise.all([
+        store.hydrate(),
+        routeRequest,
+      ])
     } finally {
       ready.value = true
     }

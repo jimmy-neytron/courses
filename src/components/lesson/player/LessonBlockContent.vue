@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { MessageSquare } from 'lucide-vue-next'
 import ActivePractice from '@/components/lesson/player/practice/ActivePractice.vue'
 import ConversationPractice from '@/components/lesson/player/practice/ConversationPractice.vue'
 import ErrorClinic from '@/components/lesson/player/practice/ErrorClinic.vue'

@@ -22,7 +22,9 @@ const props = withDefaults(defineProps<{
   hint?: string
   name?: string
 }>(), { optionLabel: 'label', optionValue: 'value' })
-const emit = defineEmits<{ 'update:modelValue': [value: any] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: UiSelectValue | null]
+}>()
 const attrs = useAttrs()
 const listId = useId()
 

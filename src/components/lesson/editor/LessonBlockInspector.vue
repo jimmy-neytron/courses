@@ -80,11 +80,17 @@ function plainContent(value?: string): string {
   return richTextToPlainText(value ?? '')
 }
 
-function updatePlainContent(value?: string): void {
+function updatePlainContent(value?: string | number): void {
   if (!props.selected) return
 
-  props.selected.content = value ?? ''
+  props.selected.content = String(value ?? '')
   emit('change')
+}
+
+function updateSection(value: string | number | null): void {
+  if (typeof value === 'string') {
+    emit('section', value as LessonSectionId)
+  }
 }
 </script>
 
@@ -104,7 +110,7 @@ function updatePlainContent(value?: string): void {
             option-label="label"
             option-value="id"
             fluid
-            @update:model-value="emit('section', $event)"
+            @update:model-value="updateSection"
           />
           <small class="inspector-help">{{ text.sectionHelp }}</small>
         </label>

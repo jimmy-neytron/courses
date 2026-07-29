@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { CheckCircle2, MessageCircle, RotateCcw, Sparkles } from 'lucide-vue-next'
+import { CheckCircle2, RotateCcw, Sparkles } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 
